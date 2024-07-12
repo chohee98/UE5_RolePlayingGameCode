@@ -1,0 +1,336 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "IngameCharacter.h"
+#include "Camera/CameraComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/InputComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/Controller.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
+
+// Sets default values
+AIngameCharacter::AIngameCharacter()
+{
+	// Set size for collision capsule
+	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
+
+	// Don't rotate when the controller rotates. Let that just affect the camera.
+	bUseControllerRotationPitch = false;
+	bUseControllerRotationYaw = false;
+	bUseControllerRotationRoll = false;
+
+	// Configure character movement
+	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f); // ...at this rotation rate
+
+	// Note: For faster iteration times these variables, and many more, can be tweaked in the Character Blueprint
+	// instead of recompiling to adjust them
+	GetCharacterMovement()->JumpZVelocity = 700.f;
+	GetCharacterMovement()->AirControl = 0.35f;
+	GetCharacterMovement()->MaxWalkSpeed = 500.f;
+	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
+	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
+
+	// Create a camera boom (pulls in towards the player if there is a collision)
+	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
+	CameraBoom->SetupAttachment(RootComponent);
+	CameraBoom->TargetArmLength = 400.0f; // The camera follows at this distance behind the character	
+	CameraBoom->bUsePawnControlRotation = true; // Rotate the arm based on the controller
+
+	// Create a follow camera
+	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
+	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
+	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
+
+	
+	static ConstructorHelpers::FClassFinder<AWeapon> WeaponBPClass(TEXT("/Game/RPG/Character/MyWeapon"));
+	if (WeaponBPClass.Class != NULL)
+		MyWeapon = WeaponBPClass.Class;
+
+	DamageSystem = CreateDefaultSubobject< UDamageSystemActorComp>(TEXT("DamageSystem"));
+	this->AddOwnedComponent(DamageSystem);
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> SM(TEXT("AnimMontage'/Game/RPG/Character/Animations/SheathSword_T_Montage'"));
+	if (SM.Succeeded())
+		SheathMontage = SM.Object;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> DM(TEXT("AnimMontage'/Game/RPG/Character/Animations/DrawSword_T_Montage'"));
+	if (DM.Succeeded())
+		DrawMontage = DM.Object;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> BM_A(TEXT("AnimMontage'/Game/RPG/Character/Animations/BasicAttack_A_Montage'"));
+	if (BM_A.Succeeded())
+		BasicAttack_A = BM_A.Object;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> BM_B(TEXT("AnimMontage'/Game/RPG/Character/Animations/BasicAttack_B_Montage'"));
+	if (BM_B.Succeeded())
+		BasicAttack_B = BM_B.Object;
+}
+
+void AIngameCharacter::Move(const FInputActionValue& Value)
+{
+	// input is a Vector2D
+	FVector2D MovementVector = Value.Get<FVector2D>();
+
+	if (Controller != nullptr)
+	{
+		// find out which way is forward
+		const FRotator Rotation = Controller->GetControlRotation();
+		const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+		// get forward vector
+		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+
+		// get right vector 
+		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+
+		// add movement 
+		AddMovementInput(ForwardDirection, MovementVector.Y);
+		AddMovementInput(RightDirection, MovementVector.X);
+	}
+}
+
+void AIngameCharacter::Look(const FInputActionValue& Value)
+{
+	// input is a Vector2D
+	FVector2D LookAxisVector = Value.Get<FVector2D>();
+
+	if (Controller != nullptr)
+	{
+		// add yaw and pitch input to controller
+		AddControllerYawInput(LookAxisVector.X);
+		AddControllerPitchInput(LookAxisVector.Y);
+	}
+}
+
+// Called when the game starts or when spawned
+void AIngameCharacter::BeginPlay()
+{
+	// Call the base class  
+	Super::BeginPlay();
+
+	AttachWeapon();
+
+	//Add Input Mapping Context
+	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+			Subsystem->AddMappingContext(DefaultMappingContext, 0);
+	}
+
+	if (Event_Dele_RequestUpdateUI.IsBound())	// RequestUpdateUI(Event Dispatcher) 호출
+		Event_Dele_RequestUpdateUI.Broadcast();
+}
+
+void AIngameCharacter::EquipWeapon(const FInputActionValue& Value)  // input T
+{
+	ReqEquipWeapon();	
+}
+
+void AIngameCharacter::BasicAttack(const FInputActionValue& Value)    // input E
+{
+	ReqAttack();
+	//IDamageableInterface* Interface = Cast<IDamageableInterface>(GetCapsuleComponent()->GetOwner());
+	//if (Interface != nullptr)
+	//{
+	//	Interface->TakeDamage(1000);
+	//}
+	//
+	//if (Event_Dele_RequestUpdateUI.IsBound())	// RequestUpdateUI(Event Dispatcher) 호출
+	//	Event_Dele_RequestUpdateUI.Broadcast();
+}
+
+void AIngameCharacter::AttachWeapon()
+{
+	FName WeaponSocket(TEXT("WeaponHouse"));
+
+	// MyWeapon 클래스를 사용하여 무기 인스턴스를 생성
+	CurrentWeapon = GetWorld()->SpawnActor<AWeapon>(MyWeapon, FVector::ZeroVector, FRotator::ZeroRotator);
+	if (CurrentWeapon)
+	{
+		// 부착 규칙 변수를 정의하고 초기화
+		FAttachmentTransformRules AttachmentRules(FAttachmentTransformRules::SnapToTargetIncludingScale);
+		// 무기를 캐릭터의 메시에 부착
+		CurrentWeapon->AttachToComponent(GetMesh(), AttachmentRules, WeaponSocket);
+	}
+	else
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, TEXT("Failed to spawn weapon."));
+}
+
+void AIngameCharacter::MoveWeaponToSocket(FName AttachSocketName)
+{
+	if (CurrentWeapon)
+	{
+		// 무기를 새로운 소켓에 부착
+		FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, true);
+		CurrentWeapon->AttachToComponent(GetMesh(), AttachmentRules, AttachSocketName);
+	}
+}
+
+void AIngameCharacter::DrawWeapon()
+{
+	PlayAnimMontage(DrawMontage, 1.f);
+	MoveWeaponToSocket("draw");
+}
+
+void AIngameCharacter::SheathWeapon()
+{
+	// 애니메이션 몽타주를 재생하고 끝났을 때 콜백을 등록
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance)
+	{
+		FOnMontageEnded EndDelegate;
+		EndDelegate.BindUObject(this, &AIngameCharacter::OnSheathMontageEnded);
+		AnimInstance->Montage_Play(SheathMontage);
+		AnimInstance->Montage_SetEndDelegate(EndDelegate, SheathMontage);
+	}
+}
+
+void AIngameCharacter::FlipFlopBasicAttackMontage()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance)
+	{
+		// 애니메이션 몽타주를 재생하고 끝났을 때 콜백을 등록	
+		FOnMontageEnded EndDelegate;
+		EndDelegate.BindUObject(this, &AIngameCharacter::OnBasicAttackhEnded);
+
+		if (bBasicAttack)
+		{
+			AnimInstance->Montage_Play(BasicAttack_A);
+			AnimInstance->Montage_SetEndDelegate(EndDelegate, BasicAttack_A);
+		}
+		else
+		{
+			AnimInstance->Montage_Play(BasicAttack_B);
+			AnimInstance->Montage_SetEndDelegate(EndDelegate, BasicAttack_B);
+		}
+		bBasicAttack = !bBasicAttack;
+	}
+}
+
+void AIngameCharacter::ActivateWeaponEffect(bool Active)
+{
+	if (CurrentWeapon && CurrentWeapon->GetAttackEffect())
+	{
+		if (Active)
+		{
+			CurrentWeapon->GetAttackEffect()->Activate(true);
+		}
+		else
+		{
+			CurrentWeapon->GetAttackEffect()->Deactivate();
+		}
+	}
+}
+
+void AIngameCharacter::OnSheathMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (Montage == SheathMontage && !bInterrupted)
+		MoveWeaponToSocket("WeaponHouse");
+}
+
+void AIngameCharacter::OnBasicAttackhEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	ActivateWeaponEffect(false);
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+}
+
+float AIngameCharacter::CurHp()
+{
+	return DamageSystem->CurHp;
+}
+
+float AIngameCharacter::MaxHp()
+{
+	return DamageSystem->MaxHp;
+}
+
+float AIngameCharacter::GetHeal(float HealAmount)
+{
+	return DamageSystem->Heal(HealAmount);
+}
+
+float AIngameCharacter::TakeDamage(float DamageAmount)
+{
+	return DamageSystem->TakeDamage(DamageAmount);
+}
+
+void AIngameCharacter::OnConstruction(const FTransform& Transform)
+{
+	DamageSystem->MaxHp = 2500;
+	DamageSystem->CurHp = DamageSystem->MaxHp;
+
+	// Damage Component Actor's Event Dispathcher Ondeath event binding
+	DamageSystem->Event_Dele_OnDeath.AddDynamic(this, &AIngameCharacter::CharacterDeath);
+}
+
+void AIngameCharacter::SetTarget(ATargetParent* Target)
+{
+	CurrentTarget = Target;
+	if (Event_Dele_TargetChanged.IsBound())	// TargetChanged (Event Dispatcher) 호출
+		Event_Dele_TargetChanged.Broadcast();
+}
+
+void AIngameCharacter::CharacterDeath_Implementation()
+{
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Death.."));
+}
+
+void AIngameCharacter::ReqEquipWeapon_Implementation()
+{
+	ResEquipWeapon();
+}
+
+void AIngameCharacter::ResEquipWeapon_Implementation()
+{
+	IsEquip = !IsEquip;
+
+	if (IsEquip)
+		DrawWeapon();
+	else
+		SheathWeapon();
+}
+
+void AIngameCharacter::ReqAttack_Implementation()
+{
+	ResAttack();
+}
+
+void AIngameCharacter::ResAttack_Implementation()
+{
+	if (IsEquip)
+	{
+		GetCharacterMovement()->SetMovementMode(MOVE_None);
+		ActivateWeaponEffect(true);
+		FlipFlopBasicAttackMontage();
+	}
+}
+	
+// Called to bind functionality to input
+void AIngameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	// Set up action bindings
+	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent)) {
+
+		//Jumping
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &ACharacter::Jump);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+
+		//Moving
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AIngameCharacter::Move);
+
+		//Looking
+		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AIngameCharacter::Look);
+
+		//Weapon Ready
+		EnhancedInputComponent->BindAction(ReadyAction, ETriggerEvent::Started, this, &AIngameCharacter::EquipWeapon);
+
+		//Attack
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AIngameCharacter::BasicAttack);
+	}
+}
+
