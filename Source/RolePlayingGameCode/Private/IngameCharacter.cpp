@@ -1,6 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "IngameCharacter.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -10,6 +7,8 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "IngameHUD.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 AIngameCharacter::AIngameCharacter()
@@ -127,11 +126,16 @@ void AIngameCharacter::BeginPlay()
 
 void AIngameCharacter::EquipWeapon(const FInputActionValue& Value)  // input T
 {
-	ReqEquipWeapon();	
+	ReqEquipWeapon();
 }
 
 void AIngameCharacter::BasicAttack(const FInputActionValue& Value)    // input E
 {
+	if (GetCharacterMovement()->IsFalling())
+	{
+		return; // 점프 중이면 공격하지 않음
+	}
+
 	ReqAttack();
 	//IDamageableInterface* Interface = Cast<IDamageableInterface>(GetCapsuleComponent()->GetOwner());
 	//if (Interface != nullptr)
@@ -155,6 +159,8 @@ void AIngameCharacter::AttachWeapon()
 		FAttachmentTransformRules AttachmentRules(FAttachmentTransformRules::SnapToTargetIncludingScale);
 		// 무기를 캐릭터의 메시에 부착
 		CurrentWeapon->AttachToComponent(GetMesh(), AttachmentRules, WeaponSocket);
+		// 무기의 소유자 설정
+		CurrentWeapon->SetOwningCharacter(this);  
 	}
 	else
 		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, TEXT("Failed to spawn weapon."));
@@ -191,6 +197,11 @@ void AIngameCharacter::SheathWeapon()
 
 void AIngameCharacter::FlipFlopBasicAttackMontage()
 {
+	if (bIsMontagePlaying)
+	{
+		return;
+	}
+
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance)
 	{
@@ -208,6 +219,14 @@ void AIngameCharacter::FlipFlopBasicAttackMontage()
 			AnimInstance->Montage_Play(BasicAttack_B);
 			AnimInstance->Montage_SetEndDelegate(EndDelegate, BasicAttack_B);
 		}
+
+		if (CurrentWeapon)
+		{
+			CurrentWeapon->SetWeaponCollision(true);
+			//CurrentWeapon->ResetOverlapCount();
+		}
+
+		bIsMontagePlaying = true; // 몽타주가 재생 중임을 표시
 		bBasicAttack = !bBasicAttack;
 	}
 }
@@ -236,7 +255,13 @@ void AIngameCharacter::OnSheathMontageEnded(UAnimMontage* Montage, bool bInterru
 void AIngameCharacter::OnBasicAttackhEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	ActivateWeaponEffect(false);
+
+	if (CurrentWeapon)
+		CurrentWeapon->SetWeaponCollision(false);
+
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	bIsMontagePlaying = false; // 몽타주 재생 완료 표시
+	CurrentWeapon->ResetOverlapCount();
 }
 
 float AIngameCharacter::CurHp()
@@ -308,6 +333,28 @@ void AIngameCharacter::ResAttack_Implementation()
 		ActivateWeaponEffect(true);
 		FlipFlopBasicAttackMontage();
 	}
+}
+
+void AIngameCharacter::ResShowDamage_Implementation()
+{
+	ReqShowDamage();
+}
+
+void AIngameCharacter::ReqShowDamage_Implementation()
+{
+	FString RoleString = HasAuthority() ? TEXT("Server") : TEXT("Client");
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("I'am [%s]"), *RoleString));
+
+	// Get the player controller's HUD
+	/*APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (PlayerController)
+	{
+		AIngameHUD* HUD = Cast<AIngameHUD>(PlayerController->GetHUD());
+		if (HUD)
+			HUD->ShowDamageNumber(50, CurrentTarget->GetActorLocation());
+	}*/
+	
+	
 }
 	
 // Called to bind functionality to input

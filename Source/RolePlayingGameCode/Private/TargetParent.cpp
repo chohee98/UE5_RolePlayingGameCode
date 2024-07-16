@@ -6,6 +6,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "IngameCharacter.h"
 #include "Components/CapsuleComponent.h"
+#include "Engine/Engine.h"
 
 // Sets default values
 ATargetParent::ATargetParent() //: TargetName("허수아비")
@@ -19,11 +20,14 @@ ATargetParent::ATargetParent() //: TargetName("허수아비")
 	if (TargetMesh.Succeeded())
 	{
 		GetMesh()->SetSkeletalMesh(TargetMesh.Object);
+		GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 	}
-	
-	GetMesh()->OnBeginCursorOver.AddDynamic(this, &ATargetParent::BeginCursorOver);
-	GetMesh()->OnEndCursorOver.AddDynamic(this, &ATargetParent::EndCursorOver);
-	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+
+	// Set collision profile name to "Target"
+	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Target"));
+
+	GetCapsuleComponent()->OnBeginCursorOver.AddDynamic(this, &ATargetParent::BeginCursorOver);
+	GetCapsuleComponent()->OnEndCursorOver.AddDynamic(this, &ATargetParent::EndCursorOver);
 	
 	DamageSystem = CreateDefaultSubobject< UDamageSystemActorComp>(TEXT("DamageSystem"));
 	this->AddOwnedComponent(DamageSystem);
@@ -33,10 +37,11 @@ ATargetParent::ATargetParent() //: TargetName("허수아비")
 void ATargetParent::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	GetMesh()->OnClicked.AddDynamic(this, &ATargetParent::SettingTarget);
-}
 
+	SetupCollision(GetCapsuleComponent());
+
+	GetCapsuleComponent()->OnClicked.AddDynamic(this, &ATargetParent::SettingTarget);
+}
 
 // Called to bind functionality to input
 void ATargetParent::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -82,7 +87,6 @@ void ATargetParent::TargetDeath_Implementation()
 
 void ATargetParent::BeginCursorOver(UPrimitiveComponent* touchedComponent)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Begin.."));
 	APlayerController* controller = GetWorld()->GetFirstPlayerController();
 	controller->CurrentMouseCursor = EMouseCursor::Hand;
 	
@@ -96,10 +100,15 @@ void ATargetParent::EndCursorOver(UPrimitiveComponent* touchedComponent)
 
 void ATargetParent::SettingTarget(UPrimitiveComponent* touchedComponent, FKey ButtonPressed)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Click.."));
 	ACharacter* pPlayer0 = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
 	AIngameCharacter* pCharacter = Cast<AIngameCharacter>(pPlayer0);
 	pCharacter->SetTarget(this);
+}
+
+void ATargetParent::SetupCollision(UPrimitiveComponent* Component)
+{
+	Component->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	Component->SetGenerateOverlapEvents(true);
 }
 
 

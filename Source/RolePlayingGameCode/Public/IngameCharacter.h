@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -122,6 +120,13 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void ResAttack();
 
+	UFUNCTION(Server, Reliable)
+	void ReqShowDamage();
+
+	UFUNCTION(Client, Reliable)
+	void ResShowDamage();
+
+
 private:
 	void AttachWeapon();
 	void MoveWeaponToSocket(FName NewSocketName);
@@ -160,6 +165,9 @@ private:
 
 	// 일반 공격 모션 FlipFlop 결정 변수
 	bool bBasicAttack = false;
+
+	// 애니메이션 몽타주 재생 여부를 추적할 변수
+	bool bIsMontagePlaying;
 
 	// Character MP Stats
 	float MaxMp = 500;

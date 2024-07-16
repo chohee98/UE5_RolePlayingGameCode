@@ -1,17 +1,21 @@
 // Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Weapon.h"
+#include "IngameCharacter.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "UObject/ConstructorHelpers.h"
 #include "TargetParent.h"
+#include "Engine/Engine.h"
+#include "DamageNumberWidget.h"
+#include "IngameHUD.h"
+#include "Kismet/GameplayStatics.h"
+
 
 // Sets default values
 AWeapon::AWeapon()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 
 	// Weapon mesh component
@@ -27,45 +31,74 @@ AWeapon::AWeapon()
 	// Weapon mesh load
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> SK_WEAPON(TEXT("SkeletalMesh'/Game//RPG/Character/Assets/Weapon/Sword'"));
 	if (SK_WEAPON.Succeeded())
-	{
 		Weapon->SetSkeletalMesh(SK_WEAPON.Object);
-	}
-	Weapon->SetCollisionProfileName(TEXT("NoCollision"));
+
+	// Set collision profile name to "Weapon"
+	Weapon->SetCollisionProfileName(TEXT("Weapon"));
 
 	// Niagara system load
 	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> ParticleAsset(TEXT("NiagaraSystem'/Game/RPG/VFX/NS_SwordAttack.NS_SwordAttack'"));
 	if (ParticleAsset.Succeeded())
-	{
 		AttackEffect->SetAsset(ParticleAsset.Object);
-	}
 
-	// 콜리전 이벤트 바인딩
+	// Bind the overlap event
 	Weapon->OnComponentBeginOverlap.AddDynamic(this, &AWeapon::OnWeaponBeginOverlap);
-}
 
+}
 // Called when the game starts or when spawned
 void AWeapon::BeginPlay()
 {
-	Super::BeginPlay();	
+	Super::BeginPlay();
+
+	// Set Collision
+	SetWeaponCollision(false);
+
 }
 
-void AWeapon::OnWeaponBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AWeapon::OnWeaponBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, TEXT("11"));
 	if (OtherActor && OtherActor != this)
 	{
+		if (OverlapCount >= 2)
+			return;
+
 		ATargetParent* Target = Cast<ATargetParent>(OtherActor);
+
 		if (Target)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, TEXT("Weapon hit the target!"));
+			//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Weapon hit the target"));
 			Target->TakeDamage(DamageAmount);
+			OverlapCount++;
+
+			// Get the player controller's HUD
+			APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+			if (PlayerController)
+			{
+				AIngameHUD* HUD = Cast<AIngameHUD>(PlayerController->GetHUD());
+				if (HUD)
+					HUD->ShowDamageNumber(DamageAmount, Target->GetActorLocation());
+			}
+
+			if (OwningCharacter)
+			{
+				OwningCharacter->ResShowDamage();  // AIngameCharacter의 함수 호출
+			}
 		}
 	}
 }
 
-// Called every frame
-void AWeapon::Tick(float DeltaTime)
+void AWeapon::SetWeaponCollision(bool bEnable)
 {
-	Super::Tick(DeltaTime);
+	Weapon->SetGenerateOverlapEvents(true);
+
+	if (bEnable)
+		Weapon->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	else
+		Weapon->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
+void AWeapon::SetOwningCharacter(AIngameCharacter* NewOwner)
+{
+	OwningCharacter = NewOwner;
+}

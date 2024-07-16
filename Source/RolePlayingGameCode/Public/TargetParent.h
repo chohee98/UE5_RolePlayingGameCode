@@ -10,6 +10,9 @@
 #include "DamageSystemActorComp.h"
 #include "TargetParent.generated.h"
 
+#define ECC_Target ECC_GameTraceChannel1
+#define ECC_Weapon ECC_GameTraceChannel2
+
 UCLASS()
 class ROLEPLAYINGGAMECODE_API ATargetParent : public ACharacter, public IDamageableInterface
 {
@@ -36,7 +39,7 @@ public:
 	// 이벤트 디스패처
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	void TargetDeath();
-	void TargetDeath_Implementation();
+	virtual void TargetDeath_Implementation();
 
 	// 컨스트럭션 스크립트
 	UFUNCTION()
@@ -51,12 +54,14 @@ public:
 	UFUNCTION()
 	void SettingTarget(UPrimitiveComponent* touchedComponent, FKey ButtonPressed);
 
+private:
+	void SetupCollision(UPrimitiveComponent* Component);
+
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UDamageSystemActorComp* DamageSystem;
 
 	UPROPERTY(BlueprintReadWrite, EditInstanceOnly)
 	FString TargetName;
-
 
 };

@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/HUD.h"
 #include "UIMainWidget.h"
+#include "DamageNumberWidget.h"
 #include "IngameHUD.generated.h"
 
 UCLASS()
@@ -16,7 +17,16 @@ public:
 protected:
 	virtual void BeginPlay() override;	
 
-public:
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UUserWidget> MainHUDWidgetClass;
-	UUIMainWidget* MainHUDWidget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<class UDamageNumberWidget> DamageNumberWidgetClass;
+
+public:
+	UFUNCTION(BlueprintCallable, Category = "HUD")
+	void ShowDamageNumber(float Damage, FVector Location);
+
+	UUIMainWidget* MainHUDWidget;	
 };
