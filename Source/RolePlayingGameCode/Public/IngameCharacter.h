@@ -102,6 +102,7 @@ public:
 	UPROPERTY()
 	FDele_TargetChanged Event_Dele_TargetChanged;
 
+
 	// 이벤트 디스패처 바인딩 함수
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	void CharacterDeath();
@@ -126,7 +127,6 @@ public:
 	UFUNCTION(Client, Reliable)
 	void ResShowDamage();
 
-
 private:
 	void AttachWeapon();
 	void MoveWeaponToSocket(FName NewSocketName);
@@ -141,7 +141,7 @@ private:
 public:
 	float GetMaxMP() { return MaxMp; }
 	float GetCurrentMP() { return CurMp; }
-
+	void SetTargetGetDamage() { bTargetGetDamage = true; };
 
 public:
 	// Target
@@ -150,8 +150,6 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Weapon")
 	AWeapon* CurrentWeapon;
-
-	
 
 private:
 	// Animation
@@ -167,7 +165,9 @@ private:
 	bool bBasicAttack = false;
 
 	// 애니메이션 몽타주 재생 여부를 추적할 변수
-	bool bIsMontagePlaying;
+	bool bIsMontagePlaying = false;
+
+	bool bTargetGetDamage = false;
 
 	// Character MP Stats
 	float MaxMp = 500;

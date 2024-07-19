@@ -15,8 +15,7 @@ void UUIMainWidget::NativeConstruct()
 
 	ACharacter* pPlayer0 = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
 	AIngameCharacter* pCharacter = Cast<AIngameCharacter>(pPlayer0);
-	pCharacter->Event_Dele_RequestUpdateUI.AddDynamic(this, &UUIMainWidget::UpdateBars);
-	
+	pCharacter->Event_Dele_RequestUpdateUI.AddDynamic(this, &UUIMainWidget::UpdateBars);	
 }
 
 void UUIMainWidget::SetHpPersent()

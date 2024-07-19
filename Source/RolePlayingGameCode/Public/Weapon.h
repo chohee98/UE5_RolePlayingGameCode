@@ -39,6 +39,8 @@ public:
 	// 오버랩 횟수 초기화 함수
 	void ResetOverlapCount() { OverlapCount = 0; }
 
+	float GetDamageAmout() { return DamageAmount; }
+
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Collision", meta = (AllowPrivateAccess = "true"))
 	class USkeletalMeshComponent* Weapon;

@@ -122,6 +122,7 @@ void AIngameCharacter::BeginPlay()
 
 	if (Event_Dele_RequestUpdateUI.IsBound())	// RequestUpdateUI(Event Dispatcher) 호출
 		Event_Dele_RequestUpdateUI.Broadcast();
+
 }
 
 void AIngameCharacter::EquipWeapon(const FInputActionValue& Value)  // input T
@@ -198,9 +199,7 @@ void AIngameCharacter::SheathWeapon()
 void AIngameCharacter::FlipFlopBasicAttackMontage()
 {
 	if (bIsMontagePlaying)
-	{
 		return;
-	}
 
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance)
@@ -221,11 +220,9 @@ void AIngameCharacter::FlipFlopBasicAttackMontage()
 		}
 
 		if (CurrentWeapon)
-		{
 			CurrentWeapon->SetWeaponCollision(true);
-			//CurrentWeapon->ResetOverlapCount();
-		}
 
+		ReqShowDamage();
 		bIsMontagePlaying = true; // 몽타주가 재생 중임을 표시
 		bBasicAttack = !bBasicAttack;
 	}
@@ -236,13 +233,9 @@ void AIngameCharacter::ActivateWeaponEffect(bool Active)
 	if (CurrentWeapon && CurrentWeapon->GetAttackEffect())
 	{
 		if (Active)
-		{
 			CurrentWeapon->GetAttackEffect()->Activate(true);
-		}
 		else
-		{
 			CurrentWeapon->GetAttackEffect()->Deactivate();
-		}
 	}
 }
 
@@ -262,6 +255,7 @@ void AIngameCharacter::OnBasicAttackhEnded(UAnimMontage* Montage, bool bInterrup
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	bIsMontagePlaying = false; // 몽타주 재생 완료 표시
 	CurrentWeapon->ResetOverlapCount();
+	bTargetGetDamage = false;
 }
 
 float AIngameCharacter::CurHp()
@@ -335,26 +329,28 @@ void AIngameCharacter::ResAttack_Implementation()
 	}
 }
 
-void AIngameCharacter::ResShowDamage_Implementation()
-{
-	ReqShowDamage();
-}
-
 void AIngameCharacter::ReqShowDamage_Implementation()
 {
-	FString RoleString = HasAuthority() ? TEXT("Server") : TEXT("Client");
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("I'am [%s]"), *RoleString));
+	ResShowDamage();
+}
 
-	// Get the player controller's HUD
-	/*APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
-	if (PlayerController)
+void AIngameCharacter::ResShowDamage_Implementation()
+{
+	if (bTargetGetDamage == true)
 	{
-		AIngameHUD* HUD = Cast<AIngameHUD>(PlayerController->GetHUD());
-		if (HUD)
-			HUD->ShowDamageNumber(50, CurrentTarget->GetActorLocation());
-	}*/
-	
-	
+		FString RoleString = HasAuthority() ? TEXT("Server") : TEXT("Client");
+		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("I'am [%s]"), *RoleString));
+		// Get the player controller's HUD
+		APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+		if (PlayerController)
+		{
+			AIngameHUD* HUD = Cast<AIngameHUD>(PlayerController->GetHUD());
+			if (HUD)
+				HUD->ShowDamageNumber(CurrentWeapon->GetDamageAmout(), CurrentTarget->GetActorLocation());
+		}
+	}
+	else
+		return;
 }
 	
 // Called to bind functionality to input

@@ -67,23 +67,11 @@ void AWeapon::OnWeaponBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAc
 
 		if (Target)
 		{
-			//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Weapon hit the target"));
 			Target->TakeDamage(DamageAmount);
 			OverlapCount++;
 
-			// Get the player controller's HUD
-			APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
-			if (PlayerController)
-			{
-				AIngameHUD* HUD = Cast<AIngameHUD>(PlayerController->GetHUD());
-				if (HUD)
-					HUD->ShowDamageNumber(DamageAmount, Target->GetActorLocation());
-			}
-
 			if (OwningCharacter)
-			{
-				OwningCharacter->ResShowDamage();  // AIngameCharacter의 함수 호출
-			}
+				OwningCharacter->SetTargetGetDamage();  // AIngameCharacter의 함수 호출
 		}
 	}
 }

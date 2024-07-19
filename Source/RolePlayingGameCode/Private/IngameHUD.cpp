@@ -33,9 +33,30 @@ void AIngameHUD::BeginPlay()
 
 void AIngameHUD::ShowDamageNumber(float Damage, FVector Location)
 {
+	// 기존의 사용되지 않는 위젯을 정리
+	CleanupDamageWidgets();
+
 	if (DamageNumberWidgetClass)
 	{
-		UDamageNumberWidget* DamageWidget = CreateWidget<UDamageNumberWidget>(GetWorld(), DamageNumberWidgetClass);
+		UDamageNumberWidget* DamageWidget = nullptr;
+
+		// 기존에 사용 가능한 위젯이 있는지 확인
+		for (UDamageNumberWidget* Widget : ActiveDamageWidgets)
+		{
+			if (!Widget->IsInViewport())
+			{
+				DamageWidget = Widget;
+				break;
+			}
+		}
+
+		// 사용 가능한 위젯이 없으면 새로 생성
+		if (!DamageWidget)
+		{
+			DamageWidget = CreateWidget<UDamageNumberWidget>(GetWorld(), DamageNumberWidgetClass);
+			ActiveDamageWidgets.Add(DamageWidget);
+		}
+
 		if (DamageWidget)
 		{
 			DamageWidget->SetDamageText(Damage);
@@ -51,5 +72,14 @@ void AIngameHUD::ShowDamageNumber(float Damage, FVector Location)
 			// 애니메이션 재생
 			DamageWidget->PlayAnimationForward();
 		}
+	}
+}
+
+void AIngameHUD::CleanupDamageWidgets()
+{
+	for (int32 i = ActiveDamageWidgets.Num() - 1; i >= 0; i--)
+	{
+		if (ActiveDamageWidgets[i] && !ActiveDamageWidgets[i]->IsInViewport())
+			ActiveDamageWidgets.RemoveAt(i);
 	}
 }
