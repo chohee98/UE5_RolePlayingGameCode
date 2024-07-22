@@ -18,11 +18,22 @@ public:
 
     void SetPosition(FVector2D ScreenPosition);
 
+    void RemoveFromViewportWithDelay(float Delay);
+
+    bool IsActive() const { return bIsActive; }
+    void SetActive(bool Active) { bIsActive = Active; }
+
+private:
+    FTimerHandle RemoveTimerHandle;
+    void RemoveFromViewport();
+
 private:
     UPROPERTY(meta = (BindWidget))
     class UTextBlock* DamageText;
 
     UPROPERTY(meta = (BindWidgetAnim), Transient)
     UWidgetAnimation* AnimationForward;
+
+    bool bIsActive = false;
 	
 };

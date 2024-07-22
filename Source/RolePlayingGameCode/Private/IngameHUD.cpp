@@ -18,45 +18,28 @@ void AIngameHUD::BeginPlay()
 	Super::BeginPlay();
 	
 	APlayerController* pPC = Cast<APlayerController>(GetWorld()->GetFirstPlayerController());
-	pPC->SetInputMode(FInputModeGameAndUI());
-	pPC->SetShowMouseCursor(true);
-
+	if (pPC)
+	{
+		pPC->SetInputMode(FInputModeGameAndUI());
+		pPC->SetShowMouseCursor(true);
+	}
+	
 	if (IsValid(MainHUDWidgetClass))
 	{
 		MainHUDWidget = Cast<UUIMainWidget>(CreateWidget(GetWorld(), MainHUDWidgetClass));
 
 		if (IsValid(MainHUDWidget))
 			MainHUDWidget->AddToViewport();
+			
 	}
-
 }
 
 void AIngameHUD::ShowDamageNumber(float Damage, FVector Location)
 {
-	// 기존의 사용되지 않는 위젯을 정리
-	CleanupDamageWidgets();
+	UDamageNumberWidget* DamageWidget = GetPooledDamageWidget();
 
 	if (DamageNumberWidgetClass)
 	{
-		UDamageNumberWidget* DamageWidget = nullptr;
-
-		// 기존에 사용 가능한 위젯이 있는지 확인
-		for (UDamageNumberWidget* Widget : ActiveDamageWidgets)
-		{
-			if (!Widget->IsInViewport())
-			{
-				DamageWidget = Widget;
-				break;
-			}
-		}
-
-		// 사용 가능한 위젯이 없으면 새로 생성
-		if (!DamageWidget)
-		{
-			DamageWidget = CreateWidget<UDamageNumberWidget>(GetWorld(), DamageNumberWidgetClass);
-			ActiveDamageWidgets.Add(DamageWidget);
-		}
-
 		if (DamageWidget)
 		{
 			DamageWidget->SetDamageText(Damage);
@@ -69,17 +52,52 @@ void AIngameHUD::ShowDamageNumber(float Damage, FVector Location)
 			// 위젯의 위치 설정 (임시적으로 설정하는 방식)
 			DamageWidget->SetPositionInViewport(ScreenPosition);
 
-			// 애니메이션 재생
+			// 애니메이션 재생 및 일정 시간이 지나면 제거
 			DamageWidget->PlayAnimationForward();
+			DamageWidget->RemoveFromViewportWithDelay(2.0f); // 2초 후 제거
 		}
 	}
 }
 
 void AIngameHUD::CleanupDamageWidgets()
 {
-	for (int32 i = ActiveDamageWidgets.Num() - 1; i >= 0; i--)
+	/*for (int32 i = ActiveDamageWidgets.Num() - 1; i >= 0; i--)
 	{
 		if (ActiveDamageWidgets[i] && !ActiveDamageWidgets[i]->IsInViewport())
 			ActiveDamageWidgets.RemoveAt(i);
+	}*/
+	while (!WidgetQueue.IsEmpty())
+	{
+		UDamageNumberWidget* Widget;
+		WidgetQueue.Peek(Widget);
+
+		if (Widget && !Widget->IsInViewport())
+			WidgetQueue.Pop();
+		else
+			break;
 	}
+}
+
+UDamageNumberWidget* AIngameHUD::GetPooledDamageWidget()
+{
+	CleanupDamageWidgets();
+
+	// 큐에서 사용 가능한 위젯을 검색
+	UDamageNumberWidget* Widget = nullptr;
+	if (WidgetQueue.Dequeue(Widget))
+	{
+		Widget->SetActive(true);
+		return Widget;
+	}
+
+	// 사용 가능한 위젯이 없으면 새로 생성
+	if (DamageNumberWidgetClass)
+	{
+		UDamageNumberWidget* NewWidget = CreateWidget<UDamageNumberWidget>(GetWorld(), DamageNumberWidgetClass);
+		NewWidget->SetActive(true);
+		WidgetQueue.Enqueue(NewWidget);
+		return NewWidget;
+	}
+
+	return nullptr;
 }

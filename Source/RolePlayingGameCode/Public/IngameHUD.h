@@ -17,23 +17,30 @@ public:
 protected:
 	virtual void BeginPlay() override;	
 
-protected:
+public:
+	UFUNCTION(BlueprintCallable, Category = "HUD")
+	void ShowDamageNumber(float Damage, FVector Location);
+
+private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UUserWidget> MainHUDWidgetClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<class UDamageNumberWidget> DamageNumberWidgetClass;
 
-public:
-	UFUNCTION(BlueprintCallable, Category = "HUD")
-	void ShowDamageNumber(float Damage, FVector Location);
+	// 더 이상 사용되지 않는 위젯을 정리하는 함수
+	void CleanupDamageWidgets();
+	UDamageNumberWidget* GetPooledDamageWidget();
 
+public:
 	UUIMainWidget* MainHUDWidget;
+	TQueue<UDamageNumberWidget*> WidgetQueue;
 
 private:
 	// 활성화된 데미지 위젯을 관리하는 배열
 	TArray<UDamageNumberWidget*> ActiveDamageWidgets;
 
-	// 더 이상 사용되지 않는 위젯을 정리하는 함수
-	void CleanupDamageWidgets();
+	FTimerHandle CleanupTimerHandle; // 타이머 핸들
+
+	
 };

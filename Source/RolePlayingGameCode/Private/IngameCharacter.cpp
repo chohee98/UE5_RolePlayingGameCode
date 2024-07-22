@@ -113,6 +113,7 @@ void AIngameCharacter::BeginPlay()
 
 	AttachWeapon();
 
+
 	//Add Input Mapping Context
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
@@ -218,11 +219,6 @@ void AIngameCharacter::FlipFlopBasicAttackMontage()
 			AnimInstance->Montage_Play(BasicAttack_B);
 			AnimInstance->Montage_SetEndDelegate(EndDelegate, BasicAttack_B);
 		}
-
-		if (CurrentWeapon)
-			CurrentWeapon->SetWeaponCollision(true);
-
-		ReqShowDamage();
 		bIsMontagePlaying = true; // 몽타주가 재생 중임을 표시
 		bBasicAttack = !bBasicAttack;
 	}
@@ -247,11 +243,8 @@ void AIngameCharacter::OnSheathMontageEnded(UAnimMontage* Montage, bool bInterru
 
 void AIngameCharacter::OnBasicAttackhEnded(UAnimMontage* Montage, bool bInterrupted)
 {
+	ReqShowDamage();
 	ActivateWeaponEffect(false);
-
-	if (CurrentWeapon)
-		CurrentWeapon->SetWeaponCollision(false);
-
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	bIsMontagePlaying = false; // 몽타주 재생 완료 표시
 	CurrentWeapon->ResetOverlapCount();
@@ -336,6 +329,7 @@ void AIngameCharacter::ReqShowDamage_Implementation()
 
 void AIngameCharacter::ResShowDamage_Implementation()
 {
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("bTargetGetDamage: %d"), bTargetGetDamage));
 	if (bTargetGetDamage == true)
 	{
 		FString RoleString = HasAuthority() ? TEXT("Server") : TEXT("Client");

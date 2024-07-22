@@ -41,6 +41,8 @@ AWeapon::AWeapon()
 	if (ParticleAsset.Succeeded())
 		AttackEffect->SetAsset(ParticleAsset.Object);
 
+	// 중복 바인딩 방지
+	Weapon->OnComponentBeginOverlap.RemoveDynamic(this, &AWeapon::OnWeaponBeginOverlap);
 	// Bind the overlap event
 	Weapon->OnComponentBeginOverlap.AddDynamic(this, &AWeapon::OnWeaponBeginOverlap);
 
@@ -52,33 +54,33 @@ void AWeapon::BeginPlay()
 
 	// Set Collision
 	SetWeaponCollision(false);
-
 }
 
 void AWeapon::OnWeaponBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor && OtherActor != this)
-	{
-		if (OverlapCount >= 2)
-			return;
+	//double StartTime = FPlatformTime::Seconds();
 
+	if (OtherActor && OtherActor != this && OverlapCount < 1)
+	{
 		ATargetParent* Target = Cast<ATargetParent>(OtherActor);
 
 		if (Target)
 		{
-			Target->TakeDamage(DamageAmount);
-			OverlapCount++;
-
 			if (OwningCharacter)
-				OwningCharacter->SetTargetGetDamage();  // AIngameCharacter의 함수 호출
+				OwningCharacter->SetTargetGetDamage();  // AIngameCharacter의 함수 호출	
+
+			Target->TakeDamage(DamageAmount);
+			OverlapCount++;			
 		}
 	}
+	//double EndTime = FPlatformTime::Seconds();
+	//GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Green, FString::Printf(TEXT("Overlap handling time: %f"), EndTime - StartTime));
 }
 
 void AWeapon::SetWeaponCollision(bool bEnable)
 {
-	Weapon->SetGenerateOverlapEvents(true);
+	Weapon->SetGenerateOverlapEvents(bEnable);
 
 	if (bEnable)
 		Weapon->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);

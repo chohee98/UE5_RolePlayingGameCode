@@ -18,3 +18,14 @@ void UDamageNumberWidget::SetPosition(FVector2D ScreenPosition)
     if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Slot))
         CanvasSlot->SetPosition(ScreenPosition);
 }
+
+void UDamageNumberWidget::RemoveFromViewportWithDelay(float Delay)
+{
+    // Delay 후에 RemoveFromViewport를 호출하는 타이머 설정
+    GetWorld()->GetTimerManager().SetTimer(RemoveTimerHandle, this, &UDamageNumberWidget::RemoveFromViewport, Delay, false);
+}
+
+void UDamageNumberWidget::RemoveFromViewport()
+{
+    RemoveFromParent();
+}
