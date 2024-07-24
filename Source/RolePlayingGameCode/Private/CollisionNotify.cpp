@@ -7,7 +7,7 @@ void UCollisionNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBas
     if (MeshComp && MeshComp->GetOwner())
     {
         AIngameCharacter* Character = Cast<AIngameCharacter>(MeshComp->GetOwner());
-        if (Character)
+        if (Character && Character->CurrentWeapon)
             Character->CurrentWeapon->SetWeaponCollision(bEnableCollision);
     }
 }

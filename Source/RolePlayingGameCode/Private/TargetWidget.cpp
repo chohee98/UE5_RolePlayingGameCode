@@ -14,7 +14,7 @@ void UTargetWidget::NativeConstruct()
 {
 	pPlayer0 = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
 	AIngameCharacter* pCharacter = Cast<AIngameCharacter>(pPlayer0);
-	pCharacter->Event_Dele_TargetChanged.AddDynamic(this, &UTargetWidget::UpdateRargetUI);
+	pCharacter->Event_Dele_TargetChanged.AddDynamic(this, &UTargetWidget::UpdateTargetUI);
 }
 
 void UTargetWidget::SetHpPersent()
@@ -24,12 +24,17 @@ void UTargetWidget::SetHpPersent()
 	TargetHealthBar->SetPercent(pCharacter->CurrentTarget->CurHp() / pCharacter->CurrentTarget->MaxHp());
 }
 
-void UTargetWidget::UpdateRargetUI_Implementation()
+void UTargetWidget::UpdateTargetUI_Implementation()
 {
 	AIngameCharacter* pCharacter = Cast<AIngameCharacter>(pPlayer0);
-	if (pCharacter->CurrentTarget)
+	if (pCharacter && pCharacter->CurrentTarget)
 	{
-		pCharacter->CurrentTarget->DamageSystem->Event_Dele_TargetDamaged.AddDynamic(this, &UTargetWidget::UpdateRargetUI);
+		// 기존 바인딩 제거
+		pCharacter->CurrentTarget->DamageSystem->Event_Dele_TargetDamaged.RemoveDynamic(this, &UTargetWidget::UpdateTargetUI);
+
+		// 새로운 타겟에 바인딩
+		pCharacter->CurrentTarget->DamageSystem->Event_Dele_TargetDamaged.AddDynamic(this, &UTargetWidget::UpdateTargetUI);
+		
 		TargetNameText->SetText(FText::FromString(pCharacter->CurrentTarget->TargetName));
 		SetHpPersent();
 		this->SetVisibility(ESlateVisibility::Visible);

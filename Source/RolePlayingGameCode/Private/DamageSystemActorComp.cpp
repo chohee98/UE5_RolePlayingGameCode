@@ -22,15 +22,6 @@ void UDamageSystemActorComp::BeginPlay()
 	//Event_Dele_TargetDamaged.AddDynamic(this, &UDamageSystemActorComp::CallDeleFunc_Single);	
 }
 
-
-// Called every frame
-void UDamageSystemActorComp::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	// ...
-}
-
 float UDamageSystemActorComp::Heal(float HealAmount)
 { 
 	if (!IsDead)
@@ -53,6 +44,7 @@ float UDamageSystemActorComp::TakeDamage(float DamageAmount)
 		if (Event_Dele_OnDeath.IsBound())	// delegate(Event Dispatcher) »£√‚
 			Event_Dele_OnDeath.Broadcast();
 	}
+
 	return DamageAmount;
 }
 

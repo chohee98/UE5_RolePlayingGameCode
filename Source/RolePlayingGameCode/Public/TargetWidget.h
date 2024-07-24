@@ -20,8 +20,8 @@ public:
 
 	// 바인딩 함수
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
-	void UpdateRargetUI();
-	void UpdateRargetUI_Implementation();
+	void UpdateTargetUI();
+	void UpdateTargetUI_Implementation();
 
 public:
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))

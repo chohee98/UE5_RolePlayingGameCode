@@ -329,7 +329,6 @@ void AIngameCharacter::ReqShowDamage_Implementation()
 
 void AIngameCharacter::ResShowDamage_Implementation()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("bTargetGetDamage: %d"), bTargetGetDamage));
 	if (bTargetGetDamage == true)
 	{
 		FString RoleString = HasAuthority() ? TEXT("Server") : TEXT("Client");

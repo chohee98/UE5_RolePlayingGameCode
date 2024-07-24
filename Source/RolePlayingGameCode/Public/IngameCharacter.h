@@ -141,7 +141,7 @@ private:
 public:
 	float GetMaxMP() { return MaxMp; }
 	float GetCurrentMP() { return CurMp; }
-	void SetTargetGetDamage() { bTargetGetDamage = true; };
+	void  SetTargetGetDamage() { bTargetGetDamage = true; };
 
 public:
 	// Target

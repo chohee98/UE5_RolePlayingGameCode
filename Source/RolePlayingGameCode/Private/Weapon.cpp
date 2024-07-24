@@ -59,8 +59,6 @@ void AWeapon::BeginPlay()
 void AWeapon::OnWeaponBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	//double StartTime = FPlatformTime::Seconds();
-
 	if (OtherActor && OtherActor != this && OverlapCount < 1)
 	{
 		ATargetParent* Target = Cast<ATargetParent>(OtherActor);
@@ -74,8 +72,6 @@ void AWeapon::OnWeaponBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAc
 			OverlapCount++;			
 		}
 	}
-	//double EndTime = FPlatformTime::Seconds();
-	//GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Green, FString::Printf(TEXT("Overlap handling time: %f"), EndTime - StartTime));
 }
 
 void AWeapon::SetWeaponCollision(bool bEnable)
