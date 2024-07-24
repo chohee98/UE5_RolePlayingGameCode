@@ -27,7 +27,7 @@ AIngameCharacter::AIngameCharacter()
 
 	// Note: For faster iteration times these variables, and many more, can be tweaked in the Character Blueprint
 	// instead of recompiling to adjust them
-	GetCharacterMovement()->JumpZVelocity = 700.f;
+	GetCharacterMovement()->JumpZVelocity = 500.f;
 	GetCharacterMovement()->AirControl = 0.35f;
 	GetCharacterMovement()->MaxWalkSpeed = 500.f;
 	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
@@ -67,6 +67,16 @@ AIngameCharacter::AIngameCharacter()
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> BM_B(TEXT("AnimMontage'/Game/RPG/Character/Animations/BasicAttack_B_Montage'"));
 	if (BM_B.Succeeded())
 		BasicAttack_B = BM_B.Object;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> DJ(TEXT("AnimMontage'/Game/RPG/Character/Animations/DoubleJump_Montage'"));
+	if (DJ.Succeeded())
+		DoubleJumpMontage = DJ.Object;
+}
+
+void AIngameCharacter::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+	JumpCount = 0; // 캐릭터가 지면에 닿으면 점프 횟수를 초기화
 }
 
 void AIngameCharacter::Move(const FInputActionValue& Value)
@@ -345,6 +355,37 @@ void AIngameCharacter::ResShowDamage_Implementation()
 	else
 		return;
 }
+
+void AIngameCharacter::ReqDoubleJump_Implementation()
+{
+	ResDoubleJump();
+}
+
+void AIngameCharacter::ResDoubleJump_Implementation()
+{
+	if (JumpCount == 1)
+	{
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance && DoubleJumpMontage)
+		{
+			AnimInstance->Montage_Play(DoubleJumpMontage);
+		}
+
+		FVector CurrentVelocity = GetCharacterMovement()->Velocity;
+		FVector LaunchVelocity = FVector(CurrentVelocity.X, CurrentVelocity.Y, 600.0f);
+
+		// 이동 모드를 Falling으로 설정 (캐릭터가 공중에 있음을 알리고 중력 적용 및 공중 제어 가능)
+		GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Falling);
+		LaunchCharacter(LaunchVelocity, true, true);
+
+		JumpCount++;
+	}
+	else
+	{
+		ACharacter::Jump();
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &AIngameCharacter::DelayedFunction, 0.2f, false);
+	}
+}
 	
 // Called to bind functionality to input
 void AIngameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -353,7 +394,7 @@ void AIngameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent)) {
 
 		//Jumping
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &ACharacter::Jump);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &AIngameCharacter::ReqDoubleJump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
 		//Moving

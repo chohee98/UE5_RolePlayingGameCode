@@ -61,6 +61,9 @@ public:
 	// Sets default values for this character's properties
 	AIngameCharacter();
 
+	//void DoubleJump();
+	void ResetJumpCount() { JumpCount = 0; };
+
 protected:
 	/** Called for motion input */
 	void Move(const FInputActionValue& Value);
@@ -68,11 +71,14 @@ protected:
 	void EquipWeapon(const FInputActionValue& Value);
 	void BasicAttack(const FInputActionValue& Value);
 
+	virtual void Landed(const FHitResult& Hit) override;
+
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	
 
 public:	
 	/** Returns CameraBoom subobject **/
@@ -127,6 +133,12 @@ public:
 	UFUNCTION(Client, Reliable)
 	void ResShowDamage();
 
+	UFUNCTION(Server, Reliable)
+	void ReqDoubleJump();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void ResDoubleJump();
+
 private:
 	void AttachWeapon();
 	void MoveWeaponToSocket(FName NewSocketName);
@@ -137,6 +149,9 @@ private:
 	void ActivateWeaponEffect(bool Active);
 	void OnSheathMontageEnded(UAnimMontage* Montage, bool bInterrupted); // 콜백 함수 선언
 	void OnBasicAttackhEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	FTimerHandle TimerHandle;
+	void DelayedFunction() { JumpCount++; };
 
 public:
 	float GetMaxMP() { return MaxMp; }
@@ -157,6 +172,7 @@ private:
 	UAnimMontage* DrawMontage;
 	UAnimMontage* BasicAttack_A;
 	UAnimMontage* BasicAttack_B;
+	UAnimMontage* DoubleJumpMontage;
 
 	// 현재 무기 상태를 저장하는 변수
 	bool IsEquip = false;
@@ -173,6 +189,11 @@ private:
 	float MaxMp = 500;
 	float CurMp = MaxMp;
 	float NorMp;
+
+	// Jump Twice
+	int32 JumpCount = 0;
+	int32 MaxJumpCount = 2;
+
 };
 
 
