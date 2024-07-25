@@ -157,6 +157,7 @@ public:
 	float GetMaxMP() { return MaxMp; }
 	float GetCurrentMP() { return CurMp; }
 	void  SetTargetGetDamage() { bTargetGetDamage = true; };
+	bool CheckMana(float ManaCost) { return ManaCost <= NorMp; }
 
 public:
 	// Target
