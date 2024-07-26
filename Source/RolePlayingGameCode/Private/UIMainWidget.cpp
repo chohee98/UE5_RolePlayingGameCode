@@ -4,6 +4,8 @@
 #include "UIMainWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "IngameCharacter.h"
+#include "CastBarWidget.h"
+#include "SkillAbility.h"
 #include "Components/TextBlock.h"
 #include "Components/ProgressBar.h"
 
@@ -38,6 +40,18 @@ void UUIMainWidget::SetMpPersent()
 	Text_MP->SetText(text);
 
 	ProgressBar_MP->SetPercent(pCharacter->GetCurrentMP() / pCharacter->GetMaxMP());
+}
+
+UCastBarWidget* UUIMainWidget::DisplayCastBar(ASkillAbility* SkillAbility)
+{
+	if (CastBarWidget)
+	{
+		CastBarWidget->SetVisibility(ESlateVisibility::Visible);
+		CastBarWidget->AbilityClass = SkillAbility->GetClass();  // SkillAbility의 클래스를 설정
+		CastBarWidget->StartCast();
+		return CastBarWidget;
+	}
+	return nullptr;
 }
 
 void UUIMainWidget::UpdateBars_Implementation()

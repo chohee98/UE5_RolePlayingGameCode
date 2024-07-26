@@ -3,6 +3,7 @@
 #include "IngamePlayerController.h"
 #include "IngameHUD.h"
 #include "UIMainWidget.h"
+#include "CastBarWidget.h"
 #include "Components/SceneComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Blueprint/UserWidget.h"
@@ -17,7 +18,6 @@ ASkillAbility::ASkillAbility()
 void ASkillAbility::BeginPlay()
 {
     Super::BeginPlay();
-
     if (Caster)
     {
         FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, true);
@@ -43,28 +43,30 @@ void ASkillAbility::BeginPlay()
 
 void ASkillAbility::BeginCasting()
 {
-    if (PlayerRef == Caster)
+    if (1) // PlayerRef == Caster
     {
-
-        if (PlayerRef->CheckMana(50)) // 50 ManaCost를 임시로 넣어놓은 값
+        if (PlayerRef->CheckMana(SkillDetails.ManaCost))
         {
-            if (1)
+            if (SkillDetails.CastTime > 0)
             {
-                DisplayCastBar();
-                //CastSuccessful.Broadcast();
-                
+                class UCastBarWidget* CastBarWidget = MainWidget->DisplayCastBar(this);
+                if (CastBarWidget)
+                    CastBarWidget->Event_Dele_CastSuccessful.AddDynamic(this, &ASkillAbility::DisplaySkill);
             }
             else
-                DisplaySkill();
+                DisplaySkill();               
         }
     }
 }
 
-void ASkillAbility::DisplayCastBar()
-{
-}
-
 void ASkillAbility::DisplaySkill()
 {
+    PlayerRef->SpendMP(SkillDetails.ManaCost);
+    SuccessfulCast();
+}
+
+void ASkillAbility::SuccessfulCast()
+{
+    GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("SuccessfulCast"));
 }
 

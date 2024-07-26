@@ -261,6 +261,14 @@ void AIngameCharacter::OnBasicAttackhEnded(UAnimMontage* Montage, bool bInterrup
 	bTargetGetDamage = false;
 }
 
+void AIngameCharacter::SpendMP(float ManaCost)
+{
+	NorMp = NorMp - ManaCost;
+	CurMp = NorMp * MaxMp;
+	if (Event_Dele_RequestUpdateUI.IsBound())	// RequestUpdateUI(Event Dispatcher) È£Ãâ
+		Event_Dele_RequestUpdateUI.Broadcast();
+}
+
 float AIngameCharacter::CurHp()
 {
 	return DamageSystem->CurHp;

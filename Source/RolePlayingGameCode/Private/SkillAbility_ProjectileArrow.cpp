@@ -6,8 +6,8 @@ ASkillAbility_ProjectileArrow::ASkillAbility_ProjectileArrow()
     NewSkillDetails.SkillName = FName("Extreme Cold");
     NewSkillDetails.Description = FString("Shoots an ice arrow that deals damage to the target.");
     NewSkillDetails.ManaCost = 0.05f;
-    NewSkillDetails.Cooldown = 2.0f;
-    NewSkillDetails.CastTime = 0.0f;
+    NewSkillDetails.Cooldown = 10.0f;
+    NewSkillDetails.CastTime = 3.0f;
     NewSkillDetails.RequiresTarget = true;
     // 아이콘 로드
     static ConstructorHelpers::FObjectFinder<UTexture2D> Icon(TEXT("/Game/RPG/Widget/InGame/Textures/Arrow"));

@@ -156,8 +156,10 @@ private:
 public:
 	float GetMaxMP() { return MaxMp; }
 	float GetCurrentMP() { return CurMp; }
+	float GetCastfastRate() { return CastfastRate; }
 	void  SetTargetGetDamage() { bTargetGetDamage = true; };
-	bool CheckMana(float ManaCost) { return ManaCost <= NorMp; }
+	bool  CheckMana(float ManaCost) { return ManaCost <= NorMp; }
+	void  SpendMP(float ManaCost);
 
 public:
 	// Target
@@ -189,11 +191,14 @@ private:
 	// Character MP Stats
 	float MaxMp = 500;
 	float CurMp = MaxMp;
-	float NorMp;
+	float NorMp = 1.0f;
 
 	// Jump Twice
 	int32 JumpCount = 0;
 	int32 MaxJumpCount = 2;
+
+	// 시전 속도
+	float CastfastRate = 1.0f;
 
 };
 

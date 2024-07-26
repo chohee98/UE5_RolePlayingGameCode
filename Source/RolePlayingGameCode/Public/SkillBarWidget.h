@@ -26,12 +26,18 @@ public:
     UPROPERTY(meta = (BindWidget))
     class UProgressBar* CoolDownBar;
 
+    UPROPERTY(meta = (BindWidget))
+    class UButton* CastButton;
+
     bool IsAvailable = true;
+
+    
 
 public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill", meta = (ExposeOnSpawn = "true"))
     TSubclassOf<class ASkillAbility> AbilityClass;
 
-
+    UFUNCTION()
+    void OnCastButtonClicked();
     
 };

@@ -19,8 +19,11 @@ protected:
 
 public:
 	void BeginCasting();
-	void DisplayCastBar();
+	void SuccessfulCast();
+
+	UFUNCTION(BlueprintCallable, Category = "Skill")
 	void DisplaySkill();
+
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability", meta = (AllowPrivateAccess = "true", ExposeOnSpawn = "true"))
@@ -33,7 +36,7 @@ public:
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill")
-	FSkillStruct SkillDetails;
+	FSkillStruct SkillDetails; // structure
 
 
 };

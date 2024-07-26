@@ -14,9 +14,11 @@ public:
 	virtual void NativeConstruct() override;
 
 public:
-	UFUNCTION()
 	void SetHpPersent();
 	void SetMpPersent();
+
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	UCastBarWidget* DisplayCastBar(class ASkillAbility* SkillAbility);
 
 	// 바인딩 함수
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
@@ -37,6 +39,8 @@ protected:
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	class UProgressBar* ProgressBar_MP;
 
+	UPROPERTY(meta = (BindWidget))
+	class UCastBarWidget* CastBarWidget;
+
 	// TargetWidget
 };
-
