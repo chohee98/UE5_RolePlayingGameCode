@@ -13,11 +13,18 @@ ASkillAbility::ASkillAbility()
 {
     PrimaryActorTick.bCanEverTick = true;
     bReplicates = true; // Actor 전체의 리플리케이션을 활성화
+
+    RootCollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RootCollisionComponent"));
+    RootComponent = RootCollisionComponent;
+
+    ParticleSystemComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ParticleSystemComponent"));
+    ParticleSystemComponent->SetupAttachment(RootCollisionComponent);
 }
 
 void ASkillAbility::BeginPlay()
 {
     Super::BeginPlay();
+
     if (Caster)
     {
         FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, true);
@@ -61,6 +68,7 @@ void ASkillAbility::BeginCasting()
 
 void ASkillAbility::DisplaySkill()
 {
+    DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
     PlayerRef->SpendMP(SkillDetails.ManaCost);
     SuccessfulCast();
 }
@@ -68,5 +76,17 @@ void ASkillAbility::DisplaySkill()
 void ASkillAbility::SuccessfulCast()
 {
     GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("SuccessfulCast"));
+}
+
+void ASkillAbility::InterruptCasting()
+{
+    GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("InterruptCasting"));
+    PlayerRef->DestroySkill(this);
+
+}
+
+void ASkillAbility::ActivateEffect()
+{
+    //DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 }
 

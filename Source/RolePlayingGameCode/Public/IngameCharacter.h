@@ -12,6 +12,8 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDele_RequestUpdateUI);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDele_TargetChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDele_InterruptCasting);
+
 
 UCLASS()
 class ROLEPLAYINGGAMECODE_API AIngameCharacter : public ACharacter, public IDamageableInterface
@@ -108,6 +110,9 @@ public:
 	UPROPERTY()
 	FDele_TargetChanged Event_Dele_TargetChanged;
 
+	UPROPERTY()
+	FDele_InterruptCasting Event_Dele_InterruptCasting;
+
 
 	// 이벤트 디스패처 바인딩 함수
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
@@ -139,6 +144,18 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void ResDoubleJump();
 
+	UFUNCTION(Server, Reliable)
+	void ReqStopAnim();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void ResStopAnim();
+
+	UFUNCTION(Server, Reliable)
+	void ReqDestroySkill(AActor* skill);
+
+	UFUNCTION(Server, Reliable)
+	void ReqSpawnSkill(TSubclassOf<ASkillAbility> AbilityClass);
+
 private:
 	void AttachWeapon();
 	void MoveWeaponToSocket(FName NewSocketName);
@@ -160,6 +177,7 @@ public:
 	void  SetTargetGetDamage() { bTargetGetDamage = true; };
 	bool  CheckMana(float ManaCost) { return ManaCost <= NorMp; }
 	void  SpendMP(float ManaCost);
+	void  DestroySkill(AActor* Skill);
 
 public:
 	// Target
@@ -168,6 +186,9 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Weapon")
 	AWeapon* CurrentWeapon;
+
+	/*UPROPERTY(Replicated, BlueprintReadWrite, Category = "Target")
+	ATargetParent* TargetToServer;*/
 
 private:
 	// Animation
@@ -199,6 +220,9 @@ private:
 
 	// 시전 속도
 	float CastfastRate = 1.0f;
+
+	// 캐스팅 몽타주를 저장할 변수
+	UAnimMontage* CurrentCastingMontage;
 
 };
 

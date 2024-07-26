@@ -16,6 +16,10 @@ ASkillAbility_ProjectileArrow::ASkillAbility_ProjectileArrow()
     else
         NewSkillDetails.Icon = nullptr;
 
+    static ConstructorHelpers::FObjectFinder<UParticleSystem> ParticleAsset(TEXT("/Game/FXVarietyPack/Particles/P_ky_waterBall"));
+    if (ParticleAsset.Succeeded())
+        ParticleSystemComponent->SetTemplate(ParticleAsset.Object);
+
     SetSkillDetails(NewSkillDetails);  
 }
 

@@ -6,6 +6,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/Character.h"
+#include "IngameCharacter.h"
 #include "UObject/ConstructorHelpers.h"
 
 
@@ -24,15 +25,10 @@ void USkillBarWidget::OnCastButtonClicked()
 {
     if (AbilityClass)
     {
-        APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
-        if (PlayerController)
+        AIngameCharacter* PlayerCharacter = Cast<AIngameCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+        if (PlayerCharacter)
         {
-            ACharacter* PlayerCharacter = PlayerController->GetCharacter();
-            if (PlayerCharacter)
-            {
-                FTransform SpawnTransform = PlayerCharacter->GetActorTransform();
-                GetWorld()->SpawnActor<AActor>(AbilityClass, SpawnTransform);
-            }
+            PlayerCharacter->ReqSpawnSkill(AbilityClass);
         }
     }
 }

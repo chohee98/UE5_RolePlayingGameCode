@@ -5,9 +5,11 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Animation/AnimInstance.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "IngameHUD.h"
+#include "SkillAbility.h"
 #include "Kismet/GameplayStatics.h"
 
 // Sets default values
@@ -43,7 +45,6 @@ AIngameCharacter::AIngameCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
-
 	
 	static ConstructorHelpers::FClassFinder<AWeapon> WeaponBPClass(TEXT("/Game/RPG/Character/MyWeapon"));
 	if (WeaponBPClass.Class != NULL)
@@ -99,6 +100,13 @@ void AIngameCharacter::Move(const FInputActionValue& Value)
 		// add movement 
 		AddMovementInput(ForwardDirection, MovementVector.Y);
 		AddMovementInput(RightDirection, MovementVector.X);
+
+		// InterruptCasting
+		if (MovementVector.Y != 0.0f || MovementVector.X != 0.0f)
+		{
+			if (Event_Dele_InterruptCasting.IsBound())
+				Event_Dele_InterruptCasting.Broadcast();
+		}		
 	}
 }
 
@@ -134,6 +142,7 @@ void AIngameCharacter::BeginPlay()
 	if (Event_Dele_RequestUpdateUI.IsBound())	// RequestUpdateUI(Event Dispatcher) È£Ãâ
 		Event_Dele_RequestUpdateUI.Broadcast();
 
+	Event_Dele_InterruptCasting.AddDynamic(this, &AIngameCharacter::ReqStopAnim);
 }
 
 void AIngameCharacter::EquipWeapon(const FInputActionValue& Value)  // input T
@@ -261,6 +270,11 @@ void AIngameCharacter::OnBasicAttackhEnded(UAnimMontage* Montage, bool bInterrup
 	bTargetGetDamage = false;
 }
 
+void AIngameCharacter::DestroySkill(AActor* Skill)
+{
+	ReqDestroySkill(Skill);
+}
+
 void AIngameCharacter::SpendMP(float ManaCost)
 {
 	NorMp = NorMp - ManaCost;
@@ -371,6 +385,9 @@ void AIngameCharacter::ReqDoubleJump_Implementation()
 
 void AIngameCharacter::ResDoubleJump_Implementation()
 {
+	/*if (Event_Dele_InterruptCasting.IsBound())
+		Event_Dele_InterruptCasting.Broadcast();*/
+
 	if (JumpCount == 1)
 	{
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -392,6 +409,42 @@ void AIngameCharacter::ResDoubleJump_Implementation()
 	{
 		ACharacter::Jump();
 		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &AIngameCharacter::DelayedFunction, 0.2f, false);
+	}
+}
+
+void AIngameCharacter::ReqStopAnim_Implementation()
+{
+	ResStopAnim();
+}
+
+void AIngameCharacter::ResStopAnim_Implementation()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance)
+	{
+		CurrentCastingMontage = AnimInstance->GetCurrentActiveMontage();
+		if (CurrentCastingMontage && AnimInstance->Montage_IsPlaying(CurrentCastingMontage))
+			AnimInstance->Montage_Stop(0.2f, CurrentCastingMontage);
+	}
+}
+
+void AIngameCharacter::ReqDestroySkill_Implementation(AActor* skill)
+{
+	skill->Destroy();
+}
+
+void AIngameCharacter::ReqSpawnSkill_Implementation(TSubclassOf<ASkillAbility> AbilityClass)
+{
+	FTransform SpawnTransform = GetActorTransform();
+	ASkillAbility* SpawnedAbility = GetWorld()->SpawnActor<ASkillAbility>(AbilityClass, SpawnTransform);
+
+	if (SpawnedAbility)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, TEXT("Skill spawned successfully"));
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, TEXT("Failed to spawn skill"));
 	}
 }
 	

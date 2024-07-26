@@ -22,6 +22,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Casting")
     void StartCast();
 
+    UFUNCTION(BlueprintCallable, Category = "Casting")
+    void InterruptCast();
+
     // Event Dispatcher
     UPROPERTY(BlueprintAssignable, Category = "Casting")
     FDele_CastSuccessful Event_Dele_CastSuccessful;
@@ -29,6 +32,7 @@ public:
 private:
     void CompletedCast();
     void UpdateCastBar();
+    void ClearCastTimer();
 
 
 private:

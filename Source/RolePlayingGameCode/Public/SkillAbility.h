@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Components/SphereComponent.h"
 #include "SkillStruct.h"
 #include "SkillAbility.generated.h"
 
@@ -20,9 +22,10 @@ protected:
 public:
 	void BeginCasting();
 	void SuccessfulCast();
+	void InterruptCasting();
 
-	UFUNCTION(BlueprintCallable, Category = "Skill")
-	void DisplaySkill();
+	virtual void ActivateEffect();
+	virtual void DisplaySkill();
 
 
 public:
@@ -38,5 +41,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill")
 	FSkillStruct SkillDetails; // structure
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Root")
+	USphereComponent* RootCollisionComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Effects")
+	UParticleSystemComponent* ParticleSystemComponent;
 };

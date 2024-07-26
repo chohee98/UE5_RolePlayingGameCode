@@ -11,6 +11,7 @@ void UCastBarWidget::NativeConstruct()
     Super::NativeConstruct();
 
     PlayerRef = Cast<AIngameCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
+    PlayerRef->Event_Dele_InterruptCasting.AddDynamic(this, &UCastBarWidget::InterruptCast);
 }
 
 void UCastBarWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -30,6 +31,23 @@ void UCastBarWidget::StartCast()
         {
             CastFastRate = PlayerRef->GetCastfastRate() * DefaultAbility->SkillDetails.CastTime;
             GetWorld()->GetTimerManager().SetTimer(CastTimer, this, &UCastBarWidget::CompletedCast, CastFastRate, false);
+        }
+    }
+}
+
+void UCastBarWidget::InterruptCast()
+{
+    if (AbilityClass)
+    {
+        if (IsVisible())
+        {
+            ASkillAbility* DefaultAbility = Cast<ASkillAbility>(AbilityClass->GetDefaultObject());
+            if (DefaultAbility)
+            {
+                DefaultAbility->InterruptCasting();
+                SetVisibility(ESlateVisibility::Collapsed);
+                ClearCastTimer();
+            }                
         }
     }
 }
@@ -55,4 +73,12 @@ void UCastBarWidget::UpdateCastBar()
 
         TB_AbilityTime->SetText(FText::FromString(FString::Printf(TEXT("%.2f"), RemainingTime)));
     }
+}
+
+void UCastBarWidget::ClearCastTimer()
+{
+    if (GetWorld()->GetTimerManager().IsTimerActive(CastTimer))
+        GetWorld()->GetTimerManager().ClearTimer(CastTimer);
+
+    CastTimer.Invalidate();
 }
