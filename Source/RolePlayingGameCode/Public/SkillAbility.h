@@ -5,7 +5,10 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "Components/SphereComponent.h"
 #include "SkillStruct.h"
+#include "TargetParent.h"
 #include "SkillAbility.generated.h"
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDele_DestroyAbility);
 
 UCLASS()
 class ROLEPLAYINGGAMECODE_API ASkillAbility : public AActor
@@ -18,19 +21,44 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 public:
+	void AttachSelf();
+
+	UFUNCTION(Client, Reliable)
 	void BeginCasting();
+
 	void SuccessfulCast();
 	void InterruptCasting();
+
 
 	virtual void ActivateEffect();
 	virtual void DisplaySkill();
 
+	UPROPERTY()
+	FDele_DestroyAbility Event_Dele_DestroyAbility;
+
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability", meta = (AllowPrivateAccess = "true", ExposeOnSpawn = "true"))
+	/*UPROPERTY(Replicated)
 	ACharacter* Caster;
+
+	UPROPERTY(Replicated)
+	ATargetParent* Target;*/
+	UPROPERTY(Replicated)
+	class AIngameCharacter* Caster;
+
+	UPROPERTY(Replicated)
+	class AActor* TargetToServer;
+
+	void InitializeAbility(AIngameCharacter* InCaster, AActor* InTarget);
+
+
+
+
+
+
 
 public:
 	class AIngameCharacter* PlayerRef;

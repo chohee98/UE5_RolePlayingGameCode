@@ -14,7 +14,7 @@ void USkillBarWidget::SynchronizeProperties()
 {
     Super::SynchronizeProperties();
 
-    if (CastButton)
+    if (CastButton) // 포커스 비활성화
         CastButton->OnClicked.AddDynamic(this, &USkillBarWidget::OnCastButtonClicked);
 
     UpdateAppearance();
@@ -27,9 +27,7 @@ void USkillBarWidget::OnCastButtonClicked()
     {
         AIngameCharacter* PlayerCharacter = Cast<AIngameCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
         if (PlayerCharacter)
-        {
-            PlayerCharacter->ReqSpawnSkill(AbilityClass);
-        }
+            PlayerCharacter->ReqSpawnAbility(AbilityClass);
     }
 }
 

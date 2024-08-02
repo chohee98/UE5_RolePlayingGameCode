@@ -11,6 +11,7 @@
 #include "IngameHUD.h"
 #include "SkillAbility.h"
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values
 AIngameCharacter::AIngameCharacter()
@@ -72,6 +73,7 @@ AIngameCharacter::AIngameCharacter()
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> DJ(TEXT("AnimMontage'/Game/RPG/Character/Animations/DoubleJump_Montage'"));
 	if (DJ.Succeeded())
 		DoubleJumpMontage = DJ.Object;
+
 }
 
 void AIngameCharacter::Landed(const FHitResult& Hit)
@@ -106,7 +108,7 @@ void AIngameCharacter::Move(const FInputActionValue& Value)
 		{
 			if (Event_Dele_InterruptCasting.IsBound())
 				Event_Dele_InterruptCasting.Broadcast();
-		}		
+		}
 	}
 }
 
@@ -145,6 +147,15 @@ void AIngameCharacter::BeginPlay()
 	Event_Dele_InterruptCasting.AddDynamic(this, &AIngameCharacter::ReqStopAnim);
 }
 
+void AIngameCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	// 리플리케이션 설정 추가
+	DOREPLIFETIME(AIngameCharacter, TargetToServer);
+
+}
+
 void AIngameCharacter::EquipWeapon(const FInputActionValue& Value)  // input T
 {
 	ReqEquipWeapon();
@@ -176,15 +187,10 @@ void AIngameCharacter::AttachWeapon()
 	CurrentWeapon = GetWorld()->SpawnActor<AWeapon>(MyWeapon, FVector::ZeroVector, FRotator::ZeroRotator);
 	if (CurrentWeapon)
 	{
-		// 부착 규칙 변수를 정의하고 초기화
 		FAttachmentTransformRules AttachmentRules(FAttachmentTransformRules::SnapToTargetIncludingScale);
-		// 무기를 캐릭터의 메시에 부착
 		CurrentWeapon->AttachToComponent(GetMesh(), AttachmentRules, WeaponSocket);
-		// 무기의 소유자 설정
 		CurrentWeapon->SetOwningCharacter(this);  
 	}
-	else
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, TEXT("Failed to spawn weapon."));
 }
 
 void AIngameCharacter::MoveWeaponToSocket(FName AttachSocketName)
@@ -270,13 +276,19 @@ void AIngameCharacter::OnBasicAttackhEnded(UAnimMontage* Montage, bool bInterrup
 	bTargetGetDamage = false;
 }
 
-void AIngameCharacter::DestroySkill(AActor* Skill)
+void AIngameCharacter::DoubleJump()
 {
-	ReqDestroySkill(Skill);
+	if (Event_Dele_InterruptCasting.IsBound())
+		Event_Dele_InterruptCasting.Broadcast();
+
+	
+
+	ReqDoubleJump();
 }
 
 void AIngameCharacter::SpendMP(float ManaCost)
 {
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("SpendMP"));
 	NorMp = NorMp - ManaCost;
 	CurMp = NorMp * MaxMp;
 	if (Event_Dele_RequestUpdateUI.IsBound())	// RequestUpdateUI(Event Dispatcher) 호출
@@ -318,6 +330,7 @@ void AIngameCharacter::SetTarget(ATargetParent* Target)
 	if (Event_Dele_TargetChanged.IsBound())	// TargetChanged (Event Dispatcher) 호출
 		Event_Dele_TargetChanged.Broadcast();
 }
+
 
 void AIngameCharacter::CharacterDeath_Implementation()
 {
@@ -385,9 +398,6 @@ void AIngameCharacter::ReqDoubleJump_Implementation()
 
 void AIngameCharacter::ResDoubleJump_Implementation()
 {
-	/*if (Event_Dele_InterruptCasting.IsBound())
-		Event_Dele_InterruptCasting.Broadcast();*/
-
 	if (JumpCount == 1)
 	{
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -428,24 +438,26 @@ void AIngameCharacter::ResStopAnim_Implementation()
 	}
 }
 
-void AIngameCharacter::ReqDestroySkill_Implementation(AActor* skill)
+void AIngameCharacter::ReqSpawnAbility_Implementation(TSubclassOf<ASkillAbility> AbilityClass)
 {
-	skill->Destroy();
-}
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	SpawnParams.Owner = this;
 
-void AIngameCharacter::ReqSpawnSkill_Implementation(TSubclassOf<ASkillAbility> AbilityClass)
-{
 	FTransform SpawnTransform = GetActorTransform();
-	ASkillAbility* SpawnedAbility = GetWorld()->SpawnActor<ASkillAbility>(AbilityClass, SpawnTransform);
+	SpawnedAbility = GetWorld()->SpawnActor<ASkillAbility>(AbilityClass, SpawnTransform, SpawnParams);
 
 	if (SpawnedAbility)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, TEXT("Skill spawned successfully"));
+		// Initialize the spawned ability
+		SpawnedAbility->InitializeAbility(this, TargetToServer);
 	}
-	else
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, TEXT("Failed to spawn skill"));
-	}
+}
+
+void AIngameCharacter::ReqDestroyAbility_Implementation()
+{
+	if (IsValid(SpawnedAbility))
+		SpawnedAbility->InterruptCasting();
 }
 	
 // Called to bind functionality to input
@@ -455,7 +467,7 @@ void AIngameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent)) {
 
 		//Jumping
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &AIngameCharacter::ReqDoubleJump);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &AIngameCharacter::DoubleJump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
 		//Moving

@@ -80,6 +80,8 @@ protected:
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 
 public:	
@@ -151,10 +153,11 @@ public:
 	void ResStopAnim();
 
 	UFUNCTION(Server, Reliable)
-	void ReqDestroySkill(AActor* skill);
+	void ReqSpawnAbility(TSubclassOf<ASkillAbility> AbilityClass);
 
 	UFUNCTION(Server, Reliable)
-	void ReqSpawnSkill(TSubclassOf<ASkillAbility> AbilityClass);
+	void ReqDestroyAbility();
+
 
 private:
 	void AttachWeapon();
@@ -167,6 +170,8 @@ private:
 	void OnSheathMontageEnded(UAnimMontage* Montage, bool bInterrupted); // 콜백 함수 선언
 	void OnBasicAttackhEnded(UAnimMontage* Montage, bool bInterrupted);
 
+	void DoubleJump();
+
 	FTimerHandle TimerHandle;
 	void DelayedFunction() { JumpCount++; };
 
@@ -177,7 +182,6 @@ public:
 	void  SetTargetGetDamage() { bTargetGetDamage = true; };
 	bool  CheckMana(float ManaCost) { return ManaCost <= NorMp; }
 	void  SpendMP(float ManaCost);
-	void  DestroySkill(AActor* Skill);
 
 public:
 	// Target
@@ -187,8 +191,11 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Weapon")
 	AWeapon* CurrentWeapon;
 
-	/*UPROPERTY(Replicated, BlueprintReadWrite, Category = "Target")
-	ATargetParent* TargetToServer;*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "Target", meta = (AllowPrivateAccess = "true", ExposeOnSpawn = "true"))
+	ATargetParent* TargetToServer;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Skill")
+	ASkillAbility* SpawnedAbility;
 
 private:
 	// Animation
@@ -197,6 +204,8 @@ private:
 	UAnimMontage* BasicAttack_A;
 	UAnimMontage* BasicAttack_B;
 	UAnimMontage* DoubleJumpMontage;
+
+	
 
 	// 현재 무기 상태를 저장하는 변수
 	bool IsEquip = false;

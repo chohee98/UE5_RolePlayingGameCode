@@ -37,19 +37,13 @@ void UCastBarWidget::StartCast()
 
 void UCastBarWidget::InterruptCast()
 {
-    if (AbilityClass)
+    while (IsVisible())
     {
-        if (IsVisible())
-        {
-            ASkillAbility* DefaultAbility = Cast<ASkillAbility>(AbilityClass->GetDefaultObject());
-            if (DefaultAbility)
-            {
-                DefaultAbility->InterruptCasting();
-                SetVisibility(ESlateVisibility::Collapsed);
-                ClearCastTimer();
-            }                
-        }
-    }
+        SetVisibility(ESlateVisibility::Collapsed);
+        ClearCastTimer();
+
+        PlayerRef->ReqDestroyAbility();
+    } 
 }
 
 void UCastBarWidget::CompletedCast()
