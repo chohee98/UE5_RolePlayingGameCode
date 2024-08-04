@@ -459,6 +459,21 @@ void AIngameCharacter::ReqDestroyAbility_Implementation()
 	if (IsValid(SpawnedAbility))
 		SpawnedAbility->InterruptCasting();
 }
+
+void AIngameCharacter::ReqDisplaySkill_Implementation()
+{
+	if (SpawnedAbility)
+	{
+		// 액터 정보 출력
+		FString AbilityInfo = FString::Printf(TEXT("Spawned Ability: %s"), *SpawnedAbility->GetName());
+		AbilityInfo += FString::Printf(TEXT(", Class: %s"), *SpawnedAbility->GetClass()->GetName());
+
+		// 디버그 메시지 출력
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, AbilityInfo);
+
+		SpawnedAbility->DisplaySkill();
+	}
+}
 	
 // Called to bind functionality to input
 void AIngameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

@@ -4,8 +4,6 @@
 #include "Blueprint/UserWidget.h"
 #include "CastBarWidget.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDele_CastSuccessful);
-
 UCLASS()
 class ROLEPLAYINGGAMECODE_API UCastBarWidget : public UUserWidget
 {
@@ -25,9 +23,7 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Casting")
     void InterruptCast();
 
-    // Event Dispatcher
-    UPROPERTY(BlueprintAssignable, Category = "Casting")
-    FDele_CastSuccessful Event_Dele_CastSuccessful;
+
 
 private:
     void CompletedCast();

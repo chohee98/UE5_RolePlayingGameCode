@@ -14,7 +14,8 @@ ASkillAbility::ASkillAbility()
 {
     PrimaryActorTick.bCanEverTick = true;
     bReplicates = true; // Actor 전체의 리플리케이션을 활성화
-
+    SetReplicateMovement(true); // 이동 리플리케이션 활성화
+    
     RootCollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RootCollisionComponent"));
     RootComponent = RootCollisionComponent;
 
@@ -49,11 +50,6 @@ void ASkillAbility::InitializeAbility(AIngameCharacter* InCaster, AActor* InTarg
     {
         Caster = InCaster;
         TargetToServer = InTarget;
-
-
-        // Caster가 제대로 설정되었는지 디버그 메시지로 확인
-        FString CasterName = Caster->GetName();
-        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, FString::Printf(TEXT("Caster in Multicast: %s"), *CasterName));
     }
 
     AttachSelf();
@@ -70,7 +66,7 @@ void ASkillAbility::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 
 void ASkillAbility::AttachSelf()
 {
-    if (HasAuthority()) // 서버에서만 실행
+    if (HasAuthority())
     {
         if (Caster)
         {
@@ -80,44 +76,30 @@ void ASkillAbility::AttachSelf()
     }
 }
 
+
 void ASkillAbility::BeginCasting_Implementation()
 {
     if (PlayerRef->CheckMana(SkillDetails.ManaCost))
     {
         if (SkillDetails.CastTime > 0)
-        {
-            class UCastBarWidget* CastBarWidget = MainWidget->DisplayCastBar(this);
-            if (CastBarWidget)
-                CastBarWidget->Event_Dele_CastSuccessful.AddDynamic(this, &ASkillAbility::DisplaySkill);
-        }
+            CastbarWidget = MainWidget->DisplayCastBar(this);        
         else
             DisplaySkill();
-    }   
+    }
 }
 
 void ASkillAbility::DisplaySkill()
 {
-    GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("DisplaySkill"));
-    DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-    if (PlayerRef)
+    if (HasAuthority())
     {
-        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("PlayerRef is valid"));
-        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("Current Mana: %f"), PlayerRef->GetCurrentMP()));
-        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("Mana Cost: %f"), SkillDetails.ManaCost));
-        PlayerRef->SpendMP(SkillDetails.ManaCost);
-        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("Remaining Mana: %f"), PlayerRef->GetCurrentMP()));
+        DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+        SuccessfulCast();
     }
-    else
-    {
-        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("PlayerRef is null"));
-    }
-    SuccessfulCast();
 }
 
-void ASkillAbility::SuccessfulCast()
+void ASkillAbility::SuccessfulCast_Implementation()
 {
-    GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("SuccessfulCast"));
-    
+    PlayerRef->SpendMP(SkillDetails.ManaCost);   
 }
 
 void ASkillAbility::InterruptCasting()
@@ -129,6 +111,6 @@ void ASkillAbility::InterruptCasting()
 
 void ASkillAbility::ActivateEffect()
 {
-    //DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+    DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 }
 

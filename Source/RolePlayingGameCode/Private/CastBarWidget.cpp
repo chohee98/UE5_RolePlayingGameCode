@@ -24,6 +24,7 @@ void UCastBarWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 
 void UCastBarWidget::StartCast()
 {
+    GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("StartCast"));
     if (AbilityClass && PlayerRef)
     {
         ASkillAbility* DefaultAbility = Cast<ASkillAbility>(AbilityClass->GetDefaultObject());
@@ -31,7 +32,7 @@ void UCastBarWidget::StartCast()
         {
             CastFastRate = PlayerRef->GetCastfastRate() * DefaultAbility->SkillDetails.CastTime;
             GetWorld()->GetTimerManager().SetTimer(CastTimer, this, &UCastBarWidget::CompletedCast, CastFastRate, false);
-        }
+        }       
     }
 }
 
@@ -47,11 +48,8 @@ void UCastBarWidget::InterruptCast()
 }
 
 void UCastBarWidget::CompletedCast()
-{
-    // 이벤트 디스패처 호출
-    if (Event_Dele_CastSuccessful.IsBound())
-        Event_Dele_CastSuccessful.Broadcast();
-
+{   
+    PlayerRef->ReqDisplaySkill();
     SetVisibility(ESlateVisibility::Collapsed);
 }
 

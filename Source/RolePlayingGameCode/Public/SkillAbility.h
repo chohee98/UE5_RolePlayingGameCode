@@ -29,9 +29,10 @@ public:
 	UFUNCTION(Client, Reliable)
 	void BeginCasting();
 
+	UFUNCTION(Client, Reliable)
 	void SuccessfulCast();
-	void InterruptCasting();
 
+	void InterruptCasting();
 
 	virtual void ActivateEffect();
 	virtual void DisplaySkill();
@@ -54,7 +55,7 @@ public:
 
 	void InitializeAbility(AIngameCharacter* InCaster, AActor* InTarget);
 
-
+	class UCastBarWidget* CastBarWidget;
 
 
 
@@ -64,6 +65,7 @@ public:
 	class AIngameCharacter* PlayerRef;
 	class AIngamePlayerController* Controller;
 	class UUIMainWidget* MainWidget;
+	class UCastBarWidget* CastbarWidget;
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill")

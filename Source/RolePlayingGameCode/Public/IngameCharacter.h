@@ -158,6 +158,9 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ReqDestroyAbility();
 
+	UFUNCTION(Server, Reliable)
+	void ReqDisplaySkill();
+
 
 private:
 	void AttachWeapon();
