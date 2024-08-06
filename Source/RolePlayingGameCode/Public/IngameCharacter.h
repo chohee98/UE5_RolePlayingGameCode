@@ -135,10 +135,10 @@ public:
 	void Multicast_Attack();
 
 	UFUNCTION(Server, Reliable)
-	void Server_ShowDamage();
+	void Server_ShowDamage(float DamageNum);
 
 	UFUNCTION(Client, Reliable)
-	void Client_ShowDamage();
+	void Client_ShowDamage(float DamageNum);
 
 	UFUNCTION(Server, Reliable)
 	void Server_DoubleJump();
@@ -165,6 +165,7 @@ public:
 	void Server_SetCurrentTarget(ATargetParent* NewTarget);
 
 private:
+	void ZoomCamera(float AxisValue);
 	void AttachWeapon();
 	void MoveWeaponToSocket(FName NewSocketName);
 	
@@ -212,6 +213,11 @@ private:
 	UAnimMontage* BasicAttack_A;
 	UAnimMontage* BasicAttack_B;
 	UAnimMontage* DoubleJumpMontage;
+
+	// Zoom settings
+	float MinZoomDistance;
+	float MaxZoomDistance;
+	float ZoomSpeed;
 
 	// 현재 무기 상태를 저장하는 변수
 	bool IsEquip = false;

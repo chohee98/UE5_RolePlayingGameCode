@@ -102,7 +102,18 @@ void ASkillAbility::DisplaySkill()
 
 void ASkillAbility::Client_SuccessfulCast_Implementation()
 {
-    PlayerRef->SpendMP(SkillDetails.ManaCost);   
+    PlayerRef->SpendMP(SkillDetails.ManaCost);  
+}
+
+void ASkillAbility::Multicast_RotateCharacterTowardsTarget_Implementation(AIngameCharacter* RoCaster, ATargetParent* RoTarget)
+{
+    if (RoCaster && RoTarget)
+    {
+        FVector Direction = (RoTarget->GetActorLocation() - RoCaster->GetActorLocation()).GetSafeNormal();
+
+        FRotator NewRotation = Direction.Rotation();
+        RoCaster->SetActorRotation(NewRotation);
+    }
 }
 
 void ASkillAbility::InterruptCasting()
@@ -117,18 +128,8 @@ void ASkillAbility::ActivateEffect()
     DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 }
 
-void ASkillAbility::AttackDamage()
+void ASkillAbility::Client_AttackDamage_Implementation(float DamageNum)
 {
-    PlayerRef->Server_ShowDamage();
-}
-
-void ASkillAbility::Multicast_RotateCharacterTowardsTarget_Implementation(AIngameCharacter* RoCaster, ATargetParent* RoTarget)
-{
-    if (RoCaster && RoTarget)
-    {
-        FVector Direction = (RoTarget->GetActorLocation() - RoCaster->GetActorLocation()).GetSafeNormal();
-
-        FRotator NewRotation = Direction.Rotation();
-        RoCaster->SetActorRotation(NewRotation);
-    }
+    PlayerRef->SetTargetGetDamage();
+    PlayerRef->Server_ShowDamage(DamageNum);
 }

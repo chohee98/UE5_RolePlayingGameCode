@@ -49,7 +49,8 @@ void ASkillAbility_ProjectileArrow::OnHit(UPrimitiveComponent* HitComp, AActor* 
         ATargetParent* HitTarget = Cast<ATargetParent>(OtherActor);
         if (HitTarget && HasAuthority()) // Only on server
             Multicast_OnHit(HitTarget, Hit);
-        //AttackDamage();
+
+        Client_AttackDamage(DamageAmount);
 
         Destroy();
     }

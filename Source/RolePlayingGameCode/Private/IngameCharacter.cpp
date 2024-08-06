@@ -46,6 +46,11 @@ AIngameCharacter::AIngameCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
+
+	// Initialize zoom properties
+	MinZoomDistance = 200.0f;
+	MaxZoomDistance = 600.0f;
+	ZoomSpeed = 50.0f;
 	
 	static ConstructorHelpers::FClassFinder<AWeapon> WeaponBPClass(TEXT("/Game/RPG/Character/MyWeapon"));
 	if (WeaponBPClass.Class != NULL)
@@ -277,12 +282,11 @@ void AIngameCharacter::OnSheathMontageEnded(UAnimMontage* Montage, bool bInterru
 
 void AIngameCharacter::OnBasicAttackhEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	Server_ShowDamage();
+	Server_ShowDamage(CurrentWeapon->GetDamageAmout());
 	ActivateWeaponEffect(false);
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	bIsMontagePlaying = false; // 몽타주 재생 완료 표시
 	CurrentWeapon->ResetOverlapCount();
-	bTargetGetDamage = false;
 }
 
 void AIngameCharacter::DoubleJump()
@@ -384,25 +388,27 @@ void AIngameCharacter::Multicast_Attack_Implementation()
 	}
 }
 
-void AIngameCharacter::Server_ShowDamage_Implementation()
+void AIngameCharacter::Server_ShowDamage_Implementation(float DamageNum)
 {
-	Client_ShowDamage();
+	Client_ShowDamage(DamageNum);
 }
 
-void AIngameCharacter::Client_ShowDamage_Implementation()
+void AIngameCharacter::Client_ShowDamage_Implementation(float DamageNum)
 {
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Client_ShowDamage_Implementation.."));
 	if (bTargetGetDamage == true)
 	{
-		//FString RoleString = HasAuthority() ? TEXT("Server") : TEXT("Client");
-		//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Black, FString::Printf(TEXT("I'am [%s]"), *RoleString));
+		FString RoleString = HasAuthority() ? TEXT("Server") : TEXT("Client");
+		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Black, FString::Printf(TEXT("I'am [%s]"), *RoleString));
 		// Get the player controller's HUD
 		APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
 		if (PlayerController)
 		{
 			AIngameHUD* HUD = Cast<AIngameHUD>(PlayerController->GetHUD());
 			if (HUD)
-				HUD->ShowDamageNumber(CurrentWeapon->GetDamageAmout(), CurrentTarget->GetActorLocation());
+				HUD->ShowDamageNumber(DamageNum, CurrentTarget->GetActorLocation());
 		}
+		bTargetGetDamage = false;
 	}
 	else
 		return;
@@ -516,5 +522,16 @@ void AIngameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		//Attack
 		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AIngameCharacter::BasicAttack);
 	}
+
+	PlayerInputComponent->BindAxis("CameraZoom", this, &AIngameCharacter::ZoomCamera);
 }
 
+void AIngameCharacter::ZoomCamera(float AxisValue)
+{
+	if (AxisValue != 0.0f)
+	{
+		float NewArmLength = CameraBoom->TargetArmLength - (AxisValue * ZoomSpeed);
+		NewArmLength = FMath::Clamp(NewArmLength, MinZoomDistance, MaxZoomDistance);
+		CameraBoom->TargetArmLength = NewArmLength;
+	}
+}

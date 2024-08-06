@@ -41,6 +41,9 @@ public:
 
 	virtual void DisplaySkill();
 
+	UFUNCTION(Client, Reliable)
+	void Client_AttackDamage(float DamageNum);
+
 
 public:
 	UPROPERTY()
@@ -59,7 +62,6 @@ public:
 
 protected:
 	void AttachSelf();
-	void AttackDamage();
 	void RotateCharacterTowardsTarget(AIngameCharacter* RoCaster, ATargetParent* RoTarget);
 
 protected:
