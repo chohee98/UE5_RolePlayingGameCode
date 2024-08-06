@@ -144,7 +144,7 @@ void AIngameCharacter::BeginPlay()
 	if (Event_Dele_RequestUpdateUI.IsBound())	// RequestUpdateUI(Event Dispatcher) 호출
 		Event_Dele_RequestUpdateUI.Broadcast();
 
-	Event_Dele_InterruptCasting.AddDynamic(this, &AIngameCharacter::ReqStopAnim);
+	Event_Dele_InterruptCasting.AddDynamic(this, &AIngameCharacter::Server_StopAnim);
 }
 
 void AIngameCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -152,13 +152,22 @@ void AIngameCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	// 리플리케이션 설정 추가
-	DOREPLIFETIME(AIngameCharacter, TargetToServer);
+	DOREPLIFETIME(AIngameCharacter, CurrentTarget);
 
+}
+
+void AIngameCharacter::OnRep_CurrentTarget()
+{
+	if (CurrentTarget)
+	{
+		if (Event_Dele_TargetChanged.IsBound())
+			Event_Dele_TargetChanged.Broadcast();
+	}
 }
 
 void AIngameCharacter::EquipWeapon(const FInputActionValue& Value)  // input T
 {
-	ReqEquipWeapon();
+	Server_EquipWeapon();
 }
 
 void AIngameCharacter::BasicAttack(const FInputActionValue& Value)    // input E
@@ -168,7 +177,7 @@ void AIngameCharacter::BasicAttack(const FInputActionValue& Value)    // input E
 		return; // 점프 중이면 공격하지 않음
 	}
 
-	ReqAttack();
+	Server_Attack();
 	//IDamageableInterface* Interface = Cast<IDamageableInterface>(GetCapsuleComponent()->GetOwner());
 	//if (Interface != nullptr)
 	//{
@@ -268,7 +277,7 @@ void AIngameCharacter::OnSheathMontageEnded(UAnimMontage* Montage, bool bInterru
 
 void AIngameCharacter::OnBasicAttackhEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	ReqShowDamage();
+	Server_ShowDamage();
 	ActivateWeaponEffect(false);
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	bIsMontagePlaying = false; // 몽타주 재생 완료 표시
@@ -281,14 +290,11 @@ void AIngameCharacter::DoubleJump()
 	if (Event_Dele_InterruptCasting.IsBound())
 		Event_Dele_InterruptCasting.Broadcast();
 
-	
-
-	ReqDoubleJump();
+	Server_DoubleJump();
 }
 
 void AIngameCharacter::SpendMP(float ManaCost)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("SpendMP"));
 	NorMp = NorMp - ManaCost;
 	CurMp = NorMp * MaxMp;
 	if (Event_Dele_RequestUpdateUI.IsBound())	// RequestUpdateUI(Event Dispatcher) 호출
@@ -326,7 +332,18 @@ void AIngameCharacter::OnConstruction(const FTransform& Transform)
 
 void AIngameCharacter::SetTarget(ATargetParent* Target)
 {
-	CurrentTarget = Target;
+	if (HasAuthority())
+	{
+		// 서버에서 바로 설정
+		CurrentTarget = Target;
+		OnRep_CurrentTarget();
+	}
+	else
+	{
+		// 클라이언트에서 서버로 RPC 호출
+		Server_SetCurrentTarget(Target);
+	}
+
 	if (Event_Dele_TargetChanged.IsBound())	// TargetChanged (Event Dispatcher) 호출
 		Event_Dele_TargetChanged.Broadcast();
 }
@@ -337,12 +354,12 @@ void AIngameCharacter::CharacterDeath_Implementation()
 	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Death.."));
 }
 
-void AIngameCharacter::ReqEquipWeapon_Implementation()
+void AIngameCharacter::Server_EquipWeapon_Implementation()
 {
-	ResEquipWeapon();
+	Multicast_EquipWeapon();
 }
 
-void AIngameCharacter::ResEquipWeapon_Implementation()
+void AIngameCharacter::Multicast_EquipWeapon_Implementation()
 {
 	IsEquip = !IsEquip;
 
@@ -352,12 +369,12 @@ void AIngameCharacter::ResEquipWeapon_Implementation()
 		SheathWeapon();
 }
 
-void AIngameCharacter::ReqAttack_Implementation()
+void AIngameCharacter::Server_Attack_Implementation()
 {
-	ResAttack();
+	Multicast_Attack();
 }
 
-void AIngameCharacter::ResAttack_Implementation()
+void AIngameCharacter::Multicast_Attack_Implementation()
 {
 	if (IsEquip)
 	{
@@ -367,17 +384,17 @@ void AIngameCharacter::ResAttack_Implementation()
 	}
 }
 
-void AIngameCharacter::ReqShowDamage_Implementation()
+void AIngameCharacter::Server_ShowDamage_Implementation()
 {
-	ResShowDamage();
+	Client_ShowDamage();
 }
 
-void AIngameCharacter::ResShowDamage_Implementation()
+void AIngameCharacter::Client_ShowDamage_Implementation()
 {
 	if (bTargetGetDamage == true)
 	{
-		FString RoleString = HasAuthority() ? TEXT("Server") : TEXT("Client");
-		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("I'am [%s]"), *RoleString));
+		//FString RoleString = HasAuthority() ? TEXT("Server") : TEXT("Client");
+		//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Black, FString::Printf(TEXT("I'am [%s]"), *RoleString));
 		// Get the player controller's HUD
 		APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
 		if (PlayerController)
@@ -391,12 +408,12 @@ void AIngameCharacter::ResShowDamage_Implementation()
 		return;
 }
 
-void AIngameCharacter::ReqDoubleJump_Implementation()
+void AIngameCharacter::Server_DoubleJump_Implementation()
 {
-	ResDoubleJump();
+	Multicast_DoubleJump();
 }
 
-void AIngameCharacter::ResDoubleJump_Implementation()
+void AIngameCharacter::Multicast_DoubleJump_Implementation()
 {
 	if (JumpCount == 1)
 	{
@@ -422,12 +439,12 @@ void AIngameCharacter::ResDoubleJump_Implementation()
 	}
 }
 
-void AIngameCharacter::ReqStopAnim_Implementation()
+void AIngameCharacter::Server_StopAnim_Implementation()
 {
-	ResStopAnim();
+	Multicast_StopAnim();
 }
 
-void AIngameCharacter::ResStopAnim_Implementation()
+void AIngameCharacter::Multicast_StopAnim_Implementation()
 {
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance)
@@ -438,7 +455,14 @@ void AIngameCharacter::ResStopAnim_Implementation()
 	}
 }
 
-void AIngameCharacter::ReqSpawnAbility_Implementation(TSubclassOf<ASkillAbility> AbilityClass)
+void AIngameCharacter::Server_SetCurrentTarget_Implementation(ATargetParent* NewTarget)
+{
+	if (NewTarget)
+		CurrentTarget = NewTarget;
+}
+
+
+void AIngameCharacter::Server_SpawnAbility_Implementation(TSubclassOf<ASkillAbility> AbilityClass, ATargetParent* TargetToServer)
 {
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -448,28 +472,23 @@ void AIngameCharacter::ReqSpawnAbility_Implementation(TSubclassOf<ASkillAbility>
 	SpawnedAbility = GetWorld()->SpawnActor<ASkillAbility>(AbilityClass, SpawnTransform, SpawnParams);
 
 	if (SpawnedAbility)
-	{
-		// Initialize the spawned ability
 		SpawnedAbility->InitializeAbility(this, TargetToServer);
-	}
 }
 
-void AIngameCharacter::ReqDestroyAbility_Implementation()
+void AIngameCharacter::Server_DestroyAbility_Implementation()
 {
 	if (IsValid(SpawnedAbility))
 		SpawnedAbility->InterruptCasting();
 }
 
-void AIngameCharacter::ReqDisplaySkill_Implementation()
+void AIngameCharacter::Server_DisplaySkill_Implementation()
 {
 	if (SpawnedAbility)
 	{
 		// 액터 정보 출력
-		FString AbilityInfo = FString::Printf(TEXT("Spawned Ability: %s"), *SpawnedAbility->GetName());
+		/*FString AbilityInfo = FString::Printf(TEXT("Spawned Ability: %s"), *SpawnedAbility->GetName());
 		AbilityInfo += FString::Printf(TEXT(", Class: %s"), *SpawnedAbility->GetClass()->GetName());
-
-		// 디버그 메시지 출력
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, AbilityInfo);
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, AbilityInfo);*/
 
 		SpawnedAbility->DisplaySkill();
 	}

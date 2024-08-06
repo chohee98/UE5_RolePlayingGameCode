@@ -23,5 +23,8 @@ public:
     // Projectile movement component
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
     UProjectileMovementComponent* ProjectileMovementComponent;
+
+protected:
+    void SetProjectileVelocityTowardsTarget();
 	
 };

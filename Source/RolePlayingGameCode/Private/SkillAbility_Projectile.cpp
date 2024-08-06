@@ -12,7 +12,7 @@ ASkillAbility_Projectile::ASkillAbility_Projectile()
     ProjectileMovementComponent->InitialSpeed = 800.f;
     ProjectileMovementComponent->MaxSpeed = 800.f;
     ProjectileMovementComponent->ProjectileGravityScale = 0.0f;
-    ProjectileMovementComponent->bRotationFollowsVelocity = false;
+    ProjectileMovementComponent->bRotationFollowsVelocity = true;
     ProjectileMovementComponent->bShouldBounce = false;
     ProjectileMovementComponent->bAutoActivate = false;
 }
@@ -20,7 +20,7 @@ ASkillAbility_Projectile::ASkillAbility_Projectile()
 void ASkillAbility_Projectile::BeginPlay()
 {
     Super::BeginPlay();
-
+    
     /*if (SkillDetails.CastTime > 0.0f)
     {
         Caster->GetMesh();
@@ -31,6 +31,25 @@ void ASkillAbility_Projectile::BeginPlay()
     }*/
 }
 
+void ASkillAbility_Projectile::SetProjectileVelocityTowardsTarget()
+{
+    if (HasAuthority())
+    {
+        if (Caster && Target)
+        {
+            FVector Direction = (Target->GetActorLocation() - Caster->GetActorLocation()).GetSafeNormal();
+            FString TargetName = Target->GetName();
+            FVector TargetLocation = Target->GetActorLocation();
+            
+            ProjectileMovementComponent->Velocity = Direction * ProjectileMovementComponent->InitialSpeed;
+
+            FRotator TargetRotation = Direction.Rotation();
+            SetActorRotation(TargetRotation);
+        }
+    }
+}
+
+
 void ASkillAbility_Projectile::ActivateEffect()
 {
     Super::ActivateEffect();
@@ -40,6 +59,8 @@ void ASkillAbility_Projectile::ActivateEffect()
 
 void ASkillAbility_Projectile::DisplaySkill()
 {
+    SetProjectileVelocityTowardsTarget();
+
     Super::DisplaySkill();
 
     ActivateEffect();

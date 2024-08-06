@@ -24,7 +24,6 @@ void UCastBarWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 
 void UCastBarWidget::StartCast()
 {
-    GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("StartCast"));
     if (AbilityClass && PlayerRef)
     {
         ASkillAbility* DefaultAbility = Cast<ASkillAbility>(AbilityClass->GetDefaultObject());
@@ -43,13 +42,13 @@ void UCastBarWidget::InterruptCast()
         SetVisibility(ESlateVisibility::Collapsed);
         ClearCastTimer();
 
-        PlayerRef->ReqDestroyAbility();
+        PlayerRef->Server_DestroyAbility();
     } 
 }
 
 void UCastBarWidget::CompletedCast()
 {   
-    PlayerRef->ReqDisplaySkill();
+    PlayerRef->Server_DisplaySkill();
     SetVisibility(ESlateVisibility::Collapsed);
 }
 

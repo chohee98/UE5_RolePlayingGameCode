@@ -27,7 +27,10 @@ void USkillBarWidget::OnCastButtonClicked()
     {
         AIngameCharacter* PlayerCharacter = Cast<AIngameCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
         if (PlayerCharacter)
-            PlayerCharacter->ReqSpawnAbility(AbilityClass);
+        {
+            if (PlayerCharacter->CurrentTarget)
+                PlayerCharacter->Server_SpawnAbility(AbilityClass, PlayerCharacter->CurrentTarget);           
+        }
     }
 }
 

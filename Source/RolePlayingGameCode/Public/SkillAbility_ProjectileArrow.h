@@ -15,8 +15,19 @@ public:
 protected:
     virtual void BeginPlay() override;
 
+
 public:
     // SkillDetails 구조체 사용 함수
     void SetSkillDetails(const FSkillStruct& NewSkillDetails);
-	
+
+    UFUNCTION()
+    void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+
+    UFUNCTION(NetMulticast, Reliable)
+    void Multicast_OnHit(ATargetParent* OtherActor, const FHitResult& Hit);
+
+private:
+    UPROPERTY(EditDefaultsOnly, Category = "Effects")
+    UParticleSystem* HitEffect;
+
 };

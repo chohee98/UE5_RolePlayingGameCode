@@ -123,44 +123,46 @@ public:
 
 	// Server & Client
 	UFUNCTION(Server, Reliable)
-	void ReqEquipWeapon();
+	void Server_EquipWeapon();
 
 	UFUNCTION(NetMulticast, Reliable)
-	void ResEquipWeapon();
+	void Multicast_EquipWeapon();
 
 	UFUNCTION(Server, Reliable)
-	void ReqAttack();
+	void Server_Attack();
 
 	UFUNCTION(NetMulticast, Reliable)
-	void ResAttack();
+	void Multicast_Attack();
 
 	UFUNCTION(Server, Reliable)
-	void ReqShowDamage();
+	void Server_ShowDamage();
 
 	UFUNCTION(Client, Reliable)
-	void ResShowDamage();
+	void Client_ShowDamage();
 
 	UFUNCTION(Server, Reliable)
-	void ReqDoubleJump();
+	void Server_DoubleJump();
 
 	UFUNCTION(NetMulticast, Reliable)
-	void ResDoubleJump();
+	void Multicast_DoubleJump();
 
 	UFUNCTION(Server, Reliable)
-	void ReqStopAnim();
+	void Server_StopAnim();
 
 	UFUNCTION(NetMulticast, Reliable)
-	void ResStopAnim();
+	void Multicast_StopAnim();
 
 	UFUNCTION(Server, Reliable)
-	void ReqSpawnAbility(TSubclassOf<ASkillAbility> AbilityClass);
+	void Server_SpawnAbility(TSubclassOf<ASkillAbility> AbilityClass, ATargetParent* TargetToServer);
 
 	UFUNCTION(Server, Reliable)
-	void ReqDestroyAbility();
+	void Server_DestroyAbility();
 
 	UFUNCTION(Server, Reliable)
-	void ReqDisplaySkill();
+	void Server_DisplaySkill();
 
+	UFUNCTION(Server, Reliable)
+	void Server_SetCurrentTarget(ATargetParent* NewTarget);
 
 private:
 	void AttachWeapon();
@@ -188,14 +190,17 @@ public:
 
 public:
 	// Target
-	UPROPERTY(BlueprintReadOnly, Category = "Target")
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentTarget)
 	ATargetParent* CurrentTarget;
+
+	UFUNCTION()
+	void OnRep_CurrentTarget();
 
 	UPROPERTY(BlueprintReadOnly, Category = "Weapon")
 	AWeapon* CurrentWeapon;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "Target", meta = (AllowPrivateAccess = "true", ExposeOnSpawn = "true"))
-	ATargetParent* TargetToServer;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "Target", meta = (AllowPrivateAccess = "true", ExposeOnSpawn = "true"))
+	//ATargetParent* TargetToServer;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Skill")
 	ASkillAbility* SpawnedAbility;
@@ -208,8 +213,6 @@ private:
 	UAnimMontage* BasicAttack_B;
 	UAnimMontage* DoubleJumpMontage;
 
-	
-
 	// 현재 무기 상태를 저장하는 변수
 	bool IsEquip = false;
 
@@ -219,6 +222,7 @@ private:
 	// 애니메이션 몽타주 재생 여부를 추적할 변수
 	bool bIsMontagePlaying = false;
 
+	// 데미지 여부를 추적할 변수
 	bool bTargetGetDamage = false;
 
 	// Character MP Stats

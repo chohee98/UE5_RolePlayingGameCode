@@ -23,57 +23,55 @@ protected:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	virtual void ActivateEffect();	
+
+	
+
 public:
-	void AttachSelf();
+	UFUNCTION(Client, Reliable)
+	void Client_BeginCasting();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_RotateCharacterTowardsTarget(AIngameCharacter* RoCaster, ATargetParent* RoTarget);
 
 	UFUNCTION(Client, Reliable)
-	void BeginCasting();
-
-	UFUNCTION(Client, Reliable)
-	void SuccessfulCast();
+	void Client_SuccessfulCast();
 
 	void InterruptCasting();
 
-	virtual void ActivateEffect();
 	virtual void DisplaySkill();
-
-	UPROPERTY()
-	FDele_DestroyAbility Event_Dele_DestroyAbility;
 
 
 public:
-	/*UPROPERTY(Replicated)
-	ACharacter* Caster;
+	UPROPERTY()
+	FDele_DestroyAbility Event_Dele_DestroyAbility;
 
-	UPROPERTY(Replicated)
-	ATargetParent* Target;*/
 	UPROPERTY(Replicated)
 	class AIngameCharacter* Caster;
 
 	UPROPERTY(Replicated)
-	class AActor* TargetToServer;
+	class ATargetParent* Target;
 
-	void InitializeAbility(AIngameCharacter* InCaster, AActor* InTarget);
+	void InitializeAbility(AIngameCharacter* InCaster, ATargetParent* InTarget);
 
-	class UCastBarWidget* CastBarWidget;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill")
+	FSkillStruct SkillDetails; // structure
 
+protected:
+	void AttachSelf();
+	void AttackDamage();
+	void RotateCharacterTowardsTarget(AIngameCharacter* RoCaster, ATargetParent* RoTarget);
 
-
-
-
-public:
+protected:
 	class AIngameCharacter* PlayerRef;
 	class AIngamePlayerController* Controller;
 	class UUIMainWidget* MainWidget;
 	class UCastBarWidget* CastbarWidget;
 
-public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill")
-	FSkillStruct SkillDetails; // structure
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Root")
 	USphereComponent* RootCollisionComponent;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Effects")
 	UParticleSystemComponent* ParticleSystemComponent;
+
+protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Damage")
+	float DamageAmount = 0; // Damage amount for the skill
 };

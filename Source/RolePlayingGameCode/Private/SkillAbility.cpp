@@ -25,7 +25,7 @@ ASkillAbility::ASkillAbility()
     Event_Dele_DestroyAbility.AddDynamic(this, &ASkillAbility::InterruptCasting);
 }
 
-void ASkillAbility::BeginPlay()
+void ASkillAbility::BeginPlay() // 클라
 {
     Super::BeginPlay();
 
@@ -44,24 +44,27 @@ void ASkillAbility::BeginPlay()
 }
 
 
-void ASkillAbility::InitializeAbility(AIngameCharacter* InCaster, AActor* InTarget)
+void ASkillAbility::InitializeAbility(AIngameCharacter* InCaster, ATargetParent* InTarget) // 서버
 {
     if (HasAuthority())
     {
         Caster = InCaster;
-        TargetToServer = InTarget;
+        Target = InTarget;
+
+        Multicast_RotateCharacterTowardsTarget(InCaster, InTarget);
     }
 
     AttachSelf();
-    BeginCasting();
+    Client_BeginCasting();
 }
+
 
 void ASkillAbility::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
     DOREPLIFETIME(ASkillAbility, Caster);
-    DOREPLIFETIME(ASkillAbility, TargetToServer);
+    DOREPLIFETIME(ASkillAbility, Target);
 }
 
 void ASkillAbility::AttachSelf()
@@ -77,7 +80,7 @@ void ASkillAbility::AttachSelf()
 }
 
 
-void ASkillAbility::BeginCasting_Implementation()
+void ASkillAbility::Client_BeginCasting_Implementation()
 {
     if (PlayerRef->CheckMana(SkillDetails.ManaCost))
     {
@@ -93,11 +96,11 @@ void ASkillAbility::DisplaySkill()
     if (HasAuthority())
     {
         DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-        SuccessfulCast();
+        Client_SuccessfulCast();
     }
 }
 
-void ASkillAbility::SuccessfulCast_Implementation()
+void ASkillAbility::Client_SuccessfulCast_Implementation()
 {
     PlayerRef->SpendMP(SkillDetails.ManaCost);   
 }
@@ -114,3 +117,18 @@ void ASkillAbility::ActivateEffect()
     DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 }
 
+void ASkillAbility::AttackDamage()
+{
+    PlayerRef->Server_ShowDamage();
+}
+
+void ASkillAbility::Multicast_RotateCharacterTowardsTarget_Implementation(AIngameCharacter* RoCaster, ATargetParent* RoTarget)
+{
+    if (RoCaster && RoTarget)
+    {
+        FVector Direction = (RoTarget->GetActorLocation() - RoCaster->GetActorLocation()).GetSafeNormal();
+
+        FRotator NewRotation = Direction.Rotation();
+        RoCaster->SetActorRotation(NewRotation);
+    }
+}

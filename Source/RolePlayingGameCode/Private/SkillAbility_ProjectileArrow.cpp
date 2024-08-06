@@ -1,4 +1,5 @@
 #include "SkillAbility_ProjectileArrow.h"
+#include <Kismet/GameplayStatics.h>
 
 ASkillAbility_ProjectileArrow::ASkillAbility_ProjectileArrow()
 {
@@ -20,7 +21,15 @@ ASkillAbility_ProjectileArrow::ASkillAbility_ProjectileArrow()
     if (ParticleAsset.Succeeded())
         ParticleSystemComponent->SetTemplate(ParticleAsset.Object);
 
+    static ConstructorHelpers::FObjectFinder<UParticleSystem> HitParticleAsset(TEXT("/Game/FXVarietyPack/Particles/P_ky_waterBallHit"));
+    if (HitParticleAsset.Succeeded())
+        HitEffect = HitParticleAsset.Object;
+
     SetSkillDetails(NewSkillDetails);  
+
+    RootCollisionComponent->OnComponentHit.AddDynamic(this, &ASkillAbility_ProjectileArrow::OnHit);
+
+    DamageAmount = 200.0f;
 }
 
 void ASkillAbility_ProjectileArrow::BeginPlay()
@@ -31,4 +40,28 @@ void ASkillAbility_ProjectileArrow::BeginPlay()
 void ASkillAbility_ProjectileArrow::SetSkillDetails(const FSkillStruct& NewSkillDetails)
 {
     SkillDetails = NewSkillDetails;
+}
+
+void ASkillAbility_ProjectileArrow::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+    if (OtherActor && (OtherActor != this) && OtherComp)
+    {
+        ATargetParent* HitTarget = Cast<ATargetParent>(OtherActor);
+        if (HitTarget && HasAuthority()) // Only on server
+            Multicast_OnHit(HitTarget, Hit);
+        //AttackDamage();
+
+        Destroy();
+    }
+}
+
+void ASkillAbility_ProjectileArrow::Multicast_OnHit_Implementation(ATargetParent* OtherActor, const FHitResult& Hit)
+{
+    if (OtherActor)
+    {
+        if (HitEffect)
+            UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), HitEffect, Hit.ImpactPoint, FRotator::ZeroRotator, true);
+
+        OtherActor->TakeDamage(DamageAmount);
+    }
 }
