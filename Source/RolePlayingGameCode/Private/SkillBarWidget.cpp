@@ -29,7 +29,7 @@ void USkillBarWidget::OnCastButtonClicked()
         if (PlayerCharacter)
         {
             if (PlayerCharacter->CurrentTarget)
-                PlayerCharacter->Server_SpawnAbility(AbilityClass, PlayerCharacter->CurrentTarget);           
+                PlayerCharacter->Server_SpawnAbility(AbilityClass, PlayerCharacter->CurrentTarget);
         }
     }
 }

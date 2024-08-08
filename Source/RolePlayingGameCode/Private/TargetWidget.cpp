@@ -12,21 +12,19 @@
 
 void UTargetWidget::NativeConstruct()
 {
-	pPlayer0 = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
-	AIngameCharacter* pCharacter = Cast<AIngameCharacter>(pPlayer0);
+	pCharacter = pCharacter = Cast<AIngameCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
 	pCharacter->Event_Dele_TargetChanged.AddDynamic(this, &UTargetWidget::UpdateTargetUI);
+	pCharacter->Event_Dele_OnTargetCancelled.AddDynamic(this, &UTargetWidget::WidgetCollapsed);
+	pCharacter->Event_Dele_OnTargetDied.AddDynamic(this, &UTargetWidget::WidgetCollapsed);
 }
 
 void UTargetWidget::SetHpPersent()
 {
-	AIngameCharacter* pCharacter = Cast<AIngameCharacter>(pPlayer0);
-
 	TargetHealthBar->SetPercent(pCharacter->CurrentTarget->CurHp() / pCharacter->CurrentTarget->MaxHp());
 }
 
 void UTargetWidget::UpdateTargetUI_Implementation()
 {
-	AIngameCharacter* pCharacter = Cast<AIngameCharacter>(pPlayer0);
 	if (pCharacter && pCharacter->CurrentTarget)
 	{
 		// 기존 바인딩 제거
@@ -40,6 +38,10 @@ void UTargetWidget::UpdateTargetUI_Implementation()
 		this->SetVisibility(ESlateVisibility::Visible);
 	}
 	else
-		this->SetVisibility(ESlateVisibility::Collapsed);
-		
+		this->SetVisibility(ESlateVisibility::Collapsed);	
+}
+
+void UTargetWidget::WidgetCollapsed_Implementation()
+{
+	SetVisibility(ESlateVisibility::Collapsed);
 }

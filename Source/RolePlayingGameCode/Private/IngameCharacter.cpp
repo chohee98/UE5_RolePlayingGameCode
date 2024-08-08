@@ -168,14 +168,19 @@ void AIngameCharacter::OnRep_CurrentTarget()
 		if (Event_Dele_TargetChanged.IsBound())
 			Event_Dele_TargetChanged.Broadcast();
 	}
+	else
+	{
+		if (Event_Dele_OnTargetCancelled.IsBound())
+			Event_Dele_OnTargetCancelled.Broadcast();
+	}
 }
 
-void AIngameCharacter::EquipWeapon(const FInputActionValue& Value)  // input T
+void AIngameCharacter::EquipWeapon(const FInputActionValue& Value)  // input E
 {
 	Server_EquipWeapon();
 }
 
-void AIngameCharacter::BasicAttack(const FInputActionValue& Value)    // input E
+void AIngameCharacter::BasicAttack(const FInputActionValue& Value)    // input Mouse
 {
 	if (GetCharacterMovement()->IsFalling())
 	{
@@ -191,6 +196,24 @@ void AIngameCharacter::BasicAttack(const FInputActionValue& Value)    // input E
 	//
 	//if (Event_Dele_RequestUpdateUI.IsBound())	// RequestUpdateUI(Event Dispatcher) 호출
 	//	Event_Dele_RequestUpdateUI.Broadcast();
+}
+
+void AIngameCharacter::TargetEsc(const FInputActionValue& Value)    // input Q
+{
+	if (CurrentTarget)
+	{
+		if (HasAuthority())
+		{
+			// 서버에서 타겟팅 취소
+			CurrentTarget = nullptr;
+			OnRep_CurrentTarget();
+		}
+		else
+		{
+			// 클라이언트에서 서버로 타겟팅 취소 요청
+			Server_CancelTargeting();
+		}
+	}	
 }
 
 void AIngameCharacter::AttachWeapon()
@@ -347,9 +370,6 @@ void AIngameCharacter::SetTarget(ATargetParent* Target)
 		// 클라이언트에서 서버로 RPC 호출
 		Server_SetCurrentTarget(Target);
 	}
-
-	if (Event_Dele_TargetChanged.IsBound())	// TargetChanged (Event Dispatcher) 호출
-		Event_Dele_TargetChanged.Broadcast();
 }
 
 
@@ -395,11 +415,10 @@ void AIngameCharacter::Server_ShowDamage_Implementation(float DamageNum)
 
 void AIngameCharacter::Client_ShowDamage_Implementation(float DamageNum)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Client_ShowDamage_Implementation.."));
 	if (bTargetGetDamage == true)
 	{
-		FString RoleString = HasAuthority() ? TEXT("Server") : TEXT("Client");
-		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Black, FString::Printf(TEXT("I'am [%s]"), *RoleString));
+		//FString RoleString = HasAuthority() ? TEXT("Server") : TEXT("Client");
+		//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Black, FString::Printf(TEXT("I'am [%s]"), *RoleString));
 		// Get the player controller's HUD
 		APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
 		if (PlayerController)
@@ -467,6 +486,11 @@ void AIngameCharacter::Server_SetCurrentTarget_Implementation(ATargetParent* New
 		CurrentTarget = NewTarget;
 }
 
+void AIngameCharacter::Server_CancelTargeting_Implementation()
+{
+	CurrentTarget = nullptr;
+}
+
 
 void AIngameCharacter::Server_SpawnAbility_Implementation(TSubclassOf<ASkillAbility> AbilityClass, ATargetParent* TargetToServer)
 {
@@ -521,6 +545,9 @@ void AIngameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 		//Attack
 		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AIngameCharacter::BasicAttack);
+
+		//TargetEsc
+		EnhancedInputComponent->BindAction(TargetEscAction, ETriggerEvent::Started, this, &AIngameCharacter::TargetEsc);
 	}
 
 	PlayerInputComponent->BindAxis("CameraZoom", this, &AIngameCharacter::ZoomCamera);

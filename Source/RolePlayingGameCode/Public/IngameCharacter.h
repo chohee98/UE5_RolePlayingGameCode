@@ -12,7 +12,9 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDele_RequestUpdateUI);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDele_TargetChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDele_OnTargetCancelled);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDele_InterruptCasting);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDele_OnTargetDied);
 
 
 UCLASS()
@@ -44,13 +46,17 @@ class ROLEPLAYINGGAMECODE_API AIngameCharacter : public ACharacter, public IDama
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* LookAction;
 	
-	/** InteractionT Input Action */
+	/** InteractionE Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* ReadyAction;
 	
-	/** InteractionE Input Action */
+	/** InteractionMouse Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* AttackAction;
+
+	/** InteractionQ Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* TargetEscAction;
 
 private:
 	UPROPERTY(EditAnywhere, Category = Weapon, meta = (AllowPrivateAccess = "true"))
@@ -72,6 +78,7 @@ protected:
 	void Look(const FInputActionValue& Value);
 	void EquipWeapon(const FInputActionValue& Value);
 	void BasicAttack(const FInputActionValue& Value);
+	void TargetEsc(const FInputActionValue& Value);
 
 	virtual void Landed(const FHitResult& Hit) override;
 
@@ -113,7 +120,13 @@ public:
 	FDele_TargetChanged Event_Dele_TargetChanged;
 
 	UPROPERTY()
+	FDele_OnTargetCancelled Event_Dele_OnTargetCancelled;
+
+	UPROPERTY()
 	FDele_InterruptCasting Event_Dele_InterruptCasting;
+
+	UPROPERTY()
+	FDele_OnTargetDied Event_Dele_OnTargetDied;
 
 
 	// 이벤트 디스패처 바인딩 함수
@@ -163,6 +176,9 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void Server_SetCurrentTarget(ATargetParent* NewTarget);
+
+	UFUNCTION(Server, Reliable)
+	void Server_CancelTargeting();
 
 private:
 	void ZoomCamera(float AxisValue);

@@ -4,10 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/DecalComponent.h"
 #include "DamageableInterface.h"
+#include "DamageSystemActorComp.h"
 #include "Engine/SkeletalMesh.h"
 #include "Components/PrimitiveComponent.h"
-#include "DamageSystemActorComp.h"
 #include "TargetParent.generated.h"
 
 #define ECC_Target ECC_GameTraceChannel1
@@ -41,10 +43,15 @@ public:
 	void TargetDeath();
 	virtual void TargetDeath_Implementation();
 
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	void ClearTarget();
+	void ClearTarget_Implementation();
+
 	// 컨스트럭션 스크립트
 	UFUNCTION()
 	virtual void OnConstruction(const FTransform& Transform) override;
 
+private:
 	UFUNCTION()
 	void BeginCursorOver(UPrimitiveComponent* touchedComponent);
 
@@ -53,9 +60,8 @@ public:
 
 	UFUNCTION()
 	void SettingTarget(UPrimitiveComponent* touchedComponent, FKey ButtonPressed);
-
-private:
 	void SetupCollision(UPrimitiveComponent* Component);
+
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
@@ -63,5 +69,11 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditInstanceOnly)
 	FString TargetName;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Decal")
+	UDecalComponent* DecalComponent;
+
+private:
+	class AIngameCharacter* pCharacter = nullptr;
 
 };

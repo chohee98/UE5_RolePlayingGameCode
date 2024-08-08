@@ -6,6 +6,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "IngameCharacter.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/DecalComponent.h"
 #include "Engine/Engine.h"
 
 // Sets default values
@@ -28,9 +29,26 @@ ATargetParent::ATargetParent() //: TargetName("허수아비")
 
 	GetCapsuleComponent()->OnBeginCursorOver.AddDynamic(this, &ATargetParent::BeginCursorOver);
 	GetCapsuleComponent()->OnEndCursorOver.AddDynamic(this, &ATargetParent::EndCursorOver);
+
+	DecalComponent = CreateDefaultSubobject<UDecalComponent>(TEXT("DecalComponent"));
+	DecalComponent->SetupAttachment(RootComponent);
+
+	DecalComponent->DecalSize = FVector(5.0f, 80.0f, 80.0f);
+	DecalComponent->SetRelativeRotation(FRotator(90, 0, 0));
+
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> DecalMaterialAsset(TEXT("Material'/Game/RPG/Meterial/MT_TargetSelection'"));
+	if (DecalMaterialAsset.Succeeded())
+	{
+		UMaterialInterface* DecalMaterial = DecalMaterialAsset.Object;
+		DecalComponent->SetDecalMaterial(DecalMaterial);
+	}
+
+	DecalComponent->SetVisibility(false);
 	
 	DamageSystem = CreateDefaultSubobject< UDamageSystemActorComp>(TEXT("DamageSystem"));
 	this->AddOwnedComponent(DamageSystem);
+	
+
 }
 
 // Called when the game starts or when spawned
@@ -40,7 +58,16 @@ void ATargetParent::BeginPlay()
 
 	SetupCollision(GetCapsuleComponent());
 
+	pCharacter = Cast<AIngameCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+	if (pCharacter)
+	{
+		pCharacter->Event_Dele_TargetChanged.AddDynamic(this, &ATargetParent::ClearTarget);
+		pCharacter->Event_Dele_OnTargetCancelled.AddDynamic(this, &ATargetParent::ClearTarget);
+		pCharacter->Event_Dele_OnTargetDied.AddDynamic(this, &ATargetParent::ClearTarget);
+	}
+
 	GetCapsuleComponent()->OnClicked.AddDynamic(this, &ATargetParent::SettingTarget);
+
 }
 
 // Called to bind functionality to input
@@ -100,9 +127,10 @@ void ATargetParent::EndCursorOver(UPrimitiveComponent* touchedComponent)
 
 void ATargetParent::SettingTarget(UPrimitiveComponent* touchedComponent, FKey ButtonPressed)
 {
-	ACharacter* pPlayer0 = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
-	AIngameCharacter* pCharacter = Cast<AIngameCharacter>(pPlayer0);
-	pCharacter->SetTarget(this);
+	DecalComponent->SetVisibility(true);
+
+	if (pCharacter)
+		pCharacter->SetTarget(this);
 }
 
 void ATargetParent::SetupCollision(UPrimitiveComponent* Component)
@@ -111,4 +139,9 @@ void ATargetParent::SetupCollision(UPrimitiveComponent* Component)
 	Component->SetGenerateOverlapEvents(true);
 }
 
-
+void ATargetParent::ClearTarget_Implementation()
+{
+	if (pCharacter && pCharacter->CurrentTarget != this)
+		DecalComponent->SetVisibility(false);
+	
+}

@@ -23,6 +23,10 @@ public:
 	void UpdateTargetUI();
 	void UpdateTargetUI_Implementation();
 
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	void WidgetCollapsed();
+	void WidgetCollapsed_Implementation();
+
 public:
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	class UTextBlock* TargetNameText;
@@ -30,8 +34,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	class UProgressBar* TargetHealthBar;
 
-	ACharacter* pPlayer0 = nullptr;
-
-
+private:
+	class AIngameCharacter* pCharacter = nullptr;
 	
 };
