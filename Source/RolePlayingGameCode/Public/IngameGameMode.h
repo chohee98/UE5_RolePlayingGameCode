@@ -11,4 +11,9 @@ class AIngameGameMode : public AGameModeBase
 
 public:
 	AIngameGameMode();
+
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
+
+	FString GetFormattedTime() const;
 };
